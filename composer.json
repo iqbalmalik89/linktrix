@@ -1,0 +1,42 @@
+{
+    "name": "laravel/lumen",
+    "description": "The Laravel Lumen Framework.",
+    "keywords": ["framework", "laravel", "lumen"],
+    "license": "MIT",
+    "type": "project",
+    "require": {
+        "laravel/lumen-framework": "5.0.*",
+        "illuminate/mail": "5.0.*",
+        "vlucas/phpdotenv": "~1.0",
+        "phelium/mysql-backup": "dev-master",
+         "goodby/csv": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "classmap": [
+            "database/"
+        ]
+    },
+    "autoload-dev": {
+        "classmap": [
+            "tests/"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist"
+    },
+    "repositories": [
+    {
+        "packagist": false
+    },
+    {
+        "type": "composer",
+        "url": "https://packagist.org/"
+    }
+]
+}

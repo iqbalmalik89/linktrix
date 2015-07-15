@@ -1,0 +1,68 @@
+.PChartsDataSetSelector
+{
+    font-size:12px;
+    font-family:verdana,helvetica,arial,sans-serif;
+}
+
+.PChartsPeriodSelector
+{
+    font-size:12px;
+    font-family:verdana,helvetica,arial,sans-serif;
+}
+
+.PChartsButtonSelected
+{
+   background-color:#CC0000;
+   border-style:solid;
+   border-color:#CC0000;
+   border-width:1px;
+   color:#FFFFFF;
+   -moz-border-radius: 5px;
+   border-radius: 5px;
+   margin: 1px;
+   outline: none;
+   box-sizing: border-box;
+}
+
+.PChartsButton
+{
+    color: #000000;
+    background: transparent;
+    opacity: 0.7;
+    border: 1px solid rgba(0, 0, 0, .3);
+   -moz-border-radius: 5px;
+   border-radius: 5px;
+   margin: 1px;
+   outline: none;
+   box-sizing: border-box;
+}
+
+.PChartsCompareList
+{
+   border-style:solid;
+   border-color:#CCCCCC;
+   border-width:1px;
+}
+
+
+.PChartsInputField
+{
+
+}
+
+.PChartsLegend
+{
+
+}
+
+.PChartsPanel
+{
+
+}
+
+
+
+
+
+
+
