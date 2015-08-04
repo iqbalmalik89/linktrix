@@ -9,7 +9,8 @@
         "illuminate/mail": "5.0.*",
         "vlucas/phpdotenv": "~1.0",
         "phelium/mysql-backup": "dev-master",
-         "goodby/csv": "*"
+         "goodby/csv": "*",
+        "swiftmailer/swiftmailer": "^5.4"
     },
     "require-dev": {
         "phpunit/phpunit": "~4.0"

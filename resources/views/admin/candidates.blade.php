@@ -21,6 +21,12 @@ th
 {
   color:#428bca;
 }
+
+#job_title_ul, #tags_ul, .tagit-new, .ui-widget-content ,.ui-helper-hidden-accessible 
+{
+  background-color: #fff !important;
+}
+
 </style>
 </head>
 <body>
@@ -103,124 +109,21 @@ th
 
 
 
-<div class="modal fade" id="candidate_detail" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  @include('admin.partials.candidate_detail')
+
+  
+<div class="modal fade" id="cv_preview" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog" style="width:60%;">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title"><span id="candidateName"></span> <a onclick="unlockProfile();" href="javascript:void(0);" id="unlock_btn" style="display:none;" class="btn btn-primary"> Unlock Profile </a> 
-              <img src="shared_images/spinner.gif" style="display:none;" id="unlock_spinner">
-
+                <h4 class="modal-title">
                 </h4>
-                LINKTRIX ID: <span id="lintrixk_id"></span>
-
             </div>
-            <div class="modal-body">
-          <div class="notification-bar" id="unlock_msg"></div>
+            <div class="modal-body" id="preview_body">
 
-                
-                <h4>Personal Information</h4>
-                <hr style="margin-top:3px; margin-bottom:3px;">
-                  
-                  <table class="table detail_table">
-
-                  <tr class="txtcolor">
-                    <th>First Name</th>
-                    <td id="first_name"></td>                          
-                    <th>Last Name</th>
-                    <td id="last_name"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Address</th>
-                    <td id="address" colspan="3"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Postal Code</th>
-                    <td id="postal_code"></td>                          
-                    <th>Tel</th>
-                    <td id="phone"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Date Of Birth</th>
-                    <td id="date_of_birth"></td>                          
-                    <th>Email</th>
-                    <td id="email"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>NRIC</th>
-                    <td id="nric"></td>                          
-                    <th>Home Number</th>
-                    <td id="home_number"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Gender</th>
-                    <td id="gender"></td>                          
-                    <th>Marital Status</th>
-                    <td id="marital_status"></td>                                                    
-                  </tr>
-
-
-                  <tr class="txtcolor">
-                    <th>Nationality</th>
-                    <td id="nationality"></td>  
-                    <th>Citizen</th>
-                    <td id="citizen"></td>                                                                                                
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Race</th>
-                    <td id="race"></td>                          
-                    <th>Religion</th>
-                    <td id="religion"></td>                                                    
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Highest Qualification</th>
-                    <td id="highest_qualification"></td>                          
-                    <th>Notice Period</th>
-                    <td id="notice_period"></td>                                                    
-                  </tr>
-                  <tr>
-                    <th>CV</th>
-                    <td colspan="3" id="cv"></td>
-                    <td>
-                  <tr class="txtcolor">
-                    <th>Remarks</th>
-                    <td id="remarks" colspan="3"></td>                          
-                  </tr>
-
-                  <tr class="txtcolor">
-                    <th>Tags</th>
-                    <td id="tags" colspan="3"></td>                          
-                  </tr>
-
-                  </table>
-
-                <h4>Work Experience</h4>
-                <hr style="margin-top:3px; margin-bottom:3px;">
-
-                  <table class="table detail_table">
-
-                    <thead>
-                      <th><b>SNo</b></th>                      
-                      <th><b>Company</b></th>
-                      <th><b>Salary</b></th>
-                      <th><b>From - To</b></th>                    
-                      <th><b>Postion</b></th>
-                    </thead>
-
-                    <tbody id="work_body">
-                      
-                    </tbody>
-
-                  </table>
-
-
+              <iframe src="" id="preview_iframe"></iframe>
+              
 
             </div>
 
@@ -232,7 +135,8 @@ th
         </div>
     </div>
 </div>
-  
+
+
   <!--main start-->
   <div id="main">
 
@@ -257,28 +161,72 @@ th
             <div class="page-heading">
 
            <form method="get" action="api/export_download" id="search_form">     
-              <h1>Candidates <a href="add-candidate" class="btn btn-primary">Add Candidate</a>  
+              <h1>Candidates  
+              <span style="font-size:14px;margin-left:20px;">
 
-              <i onclick="resetSearch()" id="reset" class="fa fa-times" style="position:absolute;left:942px; top:107px;display:none; cursor:pointer;"></i>
+                    Join with: 
+                    <label>
+                      <input type="radio" onclick="searchCandidates();" name="search_mode" checked="" id="or_search" value="AND">
+                      AND  </label>
 
-              <input id="search_term" name="search_term" onkeyup="searchCandidates(this.value);" type="text" placeholder="Search Candidates" style="margin-left:200px;height:40px; width:500px;">
-              <img src="shared_images/spinner.gif" style="display:none;" id="search_spinner">
 
-              <span id="search_count" style="font-size:15px;"></span>
+                    <label>
+                      <input type="radio" onclick="searchCandidates();" name="search_mode" id="and_search" value="OR">
+                      OR </label>
+              </span>
+               </h1> 
+
+
+
+
+              <i onclick="resetSearch()" id="reset" class="fa fa-times search_term" style="position:absolute;left:1199px; top:160px;display:none; cursor:pointer;"></i>
+
+              <table>
+              <tr>
+                <td>
+                 <ul style="border:1px solid #ccc !important;width:360px !important; height:39px;margin-top:10px;" style="" id="job_title_ul"></ul>                
+                </td>
+                <td>
+                  
+                <input id="search_name" name="search_name" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Name" style="margin-left:6px;height:40px; width:160px;">
+                </td>
+                <td>
+<!--                 <input id="search_job_title" name="search_job_title" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Job Title" style="height:40px; width:150px;">
+ -->
+                <ul style="border:1px solid #ccc !important;width:360px !important; height:38px;margin-top:10px;" style="" id="tags_ul"></ul>
+
+
+                </td>
+                <td>
+  <!--               <input id="search_tags" name="search_tags" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Tags" style="height:40px; width:400px;"> -->
+                <input name="tags_field" id="tags_field" value="" type="hidden">
+                <input name="search_job_title" id="search_job_title" value="" type="hidden">
+
+                <img src="shared_images/spinner.gif" style="display:none;" id="search_spinner">
+                <span id="search_count" style="font-size:15px;"></span>
+
+                </td>
+              </tr>
+              </table>
+
+
+
 
 <!-- <button type="button" data-toggle="modal" data-target="#assignCandidatePopup" id="assignCandidateButton" class="btn btn-primary">Assign Candidate</button>   -->
-               </h1>
+<!--                </h1> -->
                <span style="float:right; margin-right:584px; display:none;" id="sort_span">
                Sort By: 
                 <a id="asc" onclick="fillSort('asc','yes');" style="display:none;" href="javascript:void(0);">Lowest Salary</a>
                 <a id="desc" onclick="fillSort('desc','yes');" href="javascript:void(0);">Highest Salary</a>
                </span>
-                         </form>
+        </form>
           <div class="notification-bar" id="user_msg"></div>
 
 <div class="tab-container">
               <ul class="nav nav-tabs">
                 <li class="active"><a data-toggle="tab" href="#candidates">Candidates</a></li>
+<a href="add-candidate" class="btn btn-primary">Add Candidate</a>
+
               </ul>
               <div class="tab-content">
 
@@ -323,6 +271,8 @@ th
 var globalRoleType = "<?php echo $role['type'];?>";
 
 $( document ).ready(function() {
+  getTags('search');
+  getJobTitle();  
   getCandidates();
 });
 

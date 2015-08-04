@@ -11,12 +11,34 @@
   {
     font-weight: 500 !important;
   }
+
+th
+{
+  font-weight: 500 !important;  
+}
+
+.detail_table th, td
+{
+ border-top:#fff 0px solid !important; 
+}
+
+.txtcolor td
+{
+  color:#428bca;
+}
+
+#job_title_ul, #tags_ul, .tagit-new, .ui-widget-content ,.ui-helper-hidden-accessible 
+{
+  background-color: #fff !important;
+}
+
+
 </style>
 <script type="text/javascript">
 window.onbeforeunload = function(e) {
   var candidateId = document.getElementById('candidate_id').value;
   var firstName = document.getElementById('first_name').value;  
-  if(candidateId !="" && candidateId != '0' || firstName != "")
+  if(firstName != "")
   {
     return 'You haven\'t posted your data yet. Do you want to leave without finishing?';
   }
@@ -29,13 +51,19 @@ window.onbeforeunload = function(e) {
 <div id="layout-container"> 
   <!--Left navbar start-->
   @include('admin.partials.left')  
+
+  @include('admin.partials.candidate_detail')
+
+
   
   <!--main start-->
   <div id="main">
   @include('admin.partials.nav')
 
+
     <!--margin-container start-->
     <div class="margin-container">
+
     <!--scrollable wrapper start-->
       <div class="scrollable wrapper">
       <!--row start-->
@@ -57,15 +85,49 @@ window.onbeforeunload = function(e) {
 
               <div class="notification-bar" id="candidate_msg"></div>
 
+
+    <div class="alert alert-info" role="alert" id="duplicate_span" style="display:none;">
+      <strong>Duplicate Check:</strong> <span id="duplicate_msg"></span>
+    </div>
+
+
+
+              <?php
+              if($user['role']['type'] == 'assistant')
+              {
+              ?>
+                <div class="form-group">
+
+
+                  <label class="col-sm-1 control-label">Consultant</label>
+                  <div class="col-sm-2">
+                  <select id="consultant_id">
+                  </select>
+                  </div>
+
+
+                </div>              
+              <?php
+              }
+              ?>
+
+
+
               <!--form-group start-->
               <div class="form-group">
+
+               <label class="col-sm-1 control-label">Email*</label>
+                <div class="col-sm-4">
+                  <input type="text" id="email" name="email" onblur="checkDuplicateCheck(this.value);" class="form-control">
+                </div>
+
                 <label class="col-sm-1 control-label">First Name*</label>
-                <div class="col-sm-5">
+                <div class="col-sm-2">
                   <input type="text" id="first_name" name="first_name" class="form-control">
                 </div>
 
                 <label class="col-sm-2 control-label" style="width:9%;">Last Name*</label>
-                <div class="col-sm-4">
+                <div class="col-sm-2">
                   <input type="text" class="form-control" id="last_name" name="last_name">
                 </div>
 
@@ -74,7 +136,7 @@ window.onbeforeunload = function(e) {
 
               <div class="form-group">
                 <label class="col-sm-1 control-label">Address</label>
-                <div class="col-sm-5">
+                <div class="col-sm-7" style="width:59.3%;">
                   <input type="text" id="address" name="address" class="form-control">
                 </div>
 
@@ -100,10 +162,12 @@ window.onbeforeunload = function(e) {
                   <input type="text" placeholder="" id="home_number" class="form-control">
                 </div>
 
-                <label class="col-sm-1 control-label">Email*</label>
-                <div class="col-sm-3">
-                  <input type="text" id="email" name="email" class="form-control">
+                <label class="col-sm-1 control-label">Date Of Birth</label>
+                <div class="col-sm-2">
+                  <input type="text" placeholder="dd/mm/yyyy" id="date_of_birth" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker form-control-inline input-medium default-date-picker">
                 </div>
+
+ 
               </div>
 
 
@@ -123,7 +187,7 @@ window.onbeforeunload = function(e) {
                 <label class="col-sm-1 control-label">Gender</label>
                 <div class="col-sm-2">
                     <label class="radio-inline">
-                      <input type="radio" checked="checked" name="gender" id="male" value="male">
+                      <input type="radio" name="gender" id="male" value="male">
                       Male </label>
                     <label class="radio-inline">
                       <input type="radio" name="gender" id="female" value="female">
@@ -217,16 +281,13 @@ window.onbeforeunload = function(e) {
 
 
              <div class="form-group">
-                <label class="col-sm-1 control-label">Remarks</label>
-                <div class="col-sm-6">
-                  <textarea id="remarks" class="form-control"></textarea>
+                <label class="col-sm-1 control-label">Tags</label>
+                <div class="col-sm-10" style="width:85.7%;">
+                                <ul id="tags_ul"></ul>
+
                 </div>
 
 
-                <label class="col-sm-2 control-label" style="margin-left:30px;">Date Of Birth</label>
-                <div class="col-sm-2">
-                  <input type="text" placeholder="Select date of birth" id="date_of_birth" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker form-control-inline input-medium default-date-picker">
-                </div>
 
 
               </div>
@@ -250,34 +311,34 @@ window.onbeforeunload = function(e) {
                   <tr>
                     <td><input type="text" id="company1" class="company_name form-control" placeholder="Enter company name"><i style="font-size:6px;top:52%;left:19.7%;position:absolute;" class="fa fa-asterisk"></i></td>
                      <td><input type="text" class="basic_salary form-control" placeholder="Enter basic"></td>
-                     <td><input type="text" placeholder="Select from date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
-                     <td><input type="text" placeholder="Select to date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
                      <td><input type="text" id="position1" class="position form-control" placeholder="Enter position"><i style="font-size:6px;top:52%;left:97.7%;position:absolute;" class="fa fa-asterisk"></i></td>
                   </tr>
                   <tr>
                     <td><input type="text" class="company_name form-control" placeholder="Enter company name"></td>
                      <td><input type="text" class="basic_salary form-control" placeholder="Enter basic"></td>
-                     <td><input type="text" placeholder="Select from date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
-                     <td><input type="text" placeholder="Select to date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
                      <td><input type="text" class="position form-control" placeholder="Enter position"></td>
                   </tr>
                   <tr>
                     <td><input type="text" class="company_name form-control" placeholder="Enter company name"></td>
                      <td><input type="text" class="basic_salary form-control" placeholder="Enter basic"></td>
-                     <td><input type="text" placeholder="Select from date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
-                     <td><input type="text" placeholder="Select to date" readonly="readonly" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker from_date form-control-inline input-medium default-date-picker"></td>
+                     <td><input type="text" placeholder="dd/mm/yyyy" style="cursor:pointer; background-color: #FFFFFF" class="form-control datepicker to_date form-control-inline input-medium default-date-picker"></td>
                      <td><input type="text" class="position form-control" placeholder="Enter position"></td>
                   </tr>
                 </tbody>
               </table>
 
               <hr>
-              <h3>Tags</h3>
+              <h3>Remarks</h3>
 
               <div class="form-group">
 
                 <div class="col-sm-12">
-                <ul id="tags_ul"></ul>
+                  <textarea id="remarks" class="form-control"></textarea>
 
 
                 </div>
@@ -335,6 +396,7 @@ window.onbeforeunload = function(e) {
 
 
   $( document ).ready(function() {
+    getConsultant();
     <?php if(!empty($_GET['candidate_id'])){ ?>
       getCandidate("<?php echo $_GET['candidate_id']; ?>");
     <?php } else {?>

@@ -126,7 +126,7 @@ function getSupervisorConsultants(userId, edit)
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'get_consultants',
-      data: { user_id: userId},
+      data: { user_id: userId, edit:edit},
       beforeSend:function(){
 
       },
@@ -154,7 +154,7 @@ function getSupervisorConsultants(userId, edit)
         }
         else
         {
-
+          html = '<span style="margin-left:200px;">No consultant associated with this supervisor.</span>';
         }
 
         $('#manage_consultants_container').html(html);
@@ -231,7 +231,7 @@ function getUsers(page, roleId)
                 if(user.role_id == 2)
                 {
                   manageConsultants = '<a data-toggle="modal" data-target="#consultantsPopup" href="javascript:void(0);" onclick="getSupervisorConsultants('+user.id+', 1);">Manage Consultants</a> | ';
-                  if(GlobalUserId == user.id)
+//                  if(GlobalUserId == user.id)
                    viewConsultants = '<a style="float:right;" data-toggle="modal" data-target="#consultantsPopup" href="javascript:void(0);" onclick="getSupervisorConsultants('+user.id+', 0);">View Consultants</a>';
                 }
 

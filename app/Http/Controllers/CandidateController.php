@@ -46,6 +46,22 @@ class CandidateController extends BaseController
 		} 		
  	}
 
+ 	public function getJobTitle()
+ 	{
+
+		$data = $this->repo->getJobTitle();
+
+		if($data)
+		{
+			return response()->json(array('job_titles' => $data));
+		}
+		else
+		{
+			return response()->json(array('data' => array()));
+		}
+
+ 	}
+
  	public function unlockCandidate()
  	{
 		$candidate_id = \Request::input('candidate_id');
@@ -148,6 +164,34 @@ class CandidateController extends BaseController
 
 	}
 
+    public function checkDuplicateCheck()
+    {
+    	$email = \Request::get('email');
+    	$resp = $this->repo->checkDuplicateCheck($email);
+
+    	if($resp === 0)
+    	{
+			$data = array('status' => 'error', 'message' => 'A candidate already exists with this email.');
+    	}
+		else if($resp === 2)
+		{
+			$data = array('status' => 'success');
+		}
+		else
+		{
+			unset($resp['phone']);
+			unset($resp['old_phone']);			
+			unset($resp['home_number']);			
+			unset($resp['cv_path']);			
+			unset($resp['old_cv_path']);			
+			unset($resp['cv_url']);			
+
+			$data = array('status' => 'duplicate', 'message' => 'Do you want to share the information?', 'data' => $resp);
+		}
+
+		return response()->json($data);		
+    }
+
     public function csvUpload()
     {
     	if (\Request::hasFile('csv') && \Request::file('csv')->isValid())
@@ -200,13 +244,34 @@ class CandidateController extends BaseController
     public function exportDownload()
     {
 
-		$searchTerm = \Request::input('search_term');
-		if(!empty($searchTerm))
+		// $searchTerm = \Request::input('search_term');
+		// if(!empty($searchTerm))
+		// {
+		// 	$searchTerm = '%'.$searchTerm.'%';
+		// }
+
+		$search = array();
+		$search['search_name'] = \Request::input('search_name');
+		$search['search_job_title'] = \Request::input('search_job_title');
+		$search['search_tags'] = \Request::input('tags_field');
+		$search['search_mode'] = \Request::input('search_mode');
+
+
+		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']))
 		{
-			$searchTerm = '%'.$searchTerm.'%';
+			$searchMode = $search['search_mode'];
+			unset($search['search_mode']);
+			foreach ($search as $key => &$singleSearch) {
+				if(!empty($singleSearch) && $key !== 'search_tags')
+					$singleSearch = '%'.$singleSearch.'%'; 
+			}
+			$search['search_mode'] = $searchMode;
+			$limit = 0;
 		}
 
-		$resp = $this->repo->exportCandidates($searchTerm);
+
+
+		$resp = $this->repo->exportCandidates($search);
 		
     	// $cvPath = \Utility::getRoot('export').\Request::input('file');
     	// if(file_exists($cvPath))
@@ -255,7 +320,12 @@ class CandidateController extends BaseController
 	public function getCandidates()
 	{
 		$limit = \Request::input('limit');
-		$searchTerm = \Request::input('search_term');		
+		$search = array();
+		$search['search_name'] = \Request::input('search_name');
+		$search['search_mode'] = \Request::input('search_mode');		
+		$search['search_job_title'] = \Request::input('search_job_title');
+		$search['search_tags'] = \Request::input('search_tags');
+
 		$sortOrder = \Request::input('sort_order');				
 		$orderBy = \Request::input('order_by');		
 		if(empty($orderBy))
@@ -264,14 +334,21 @@ class CandidateController extends BaseController
 			$orderBy = 'asc';
 
 
-		if(!empty($searchTerm))
+		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']))
 		{
-			$searchTerm = '%'.$searchTerm.'%';
+			$searchMode = $search['search_mode'];
+			unset($search['search_mode']);
+			foreach ($search as $key => &$singleSearch) {
+				if(!empty($singleSearch) && $key !== 'search_tags')
+					$singleSearch = '%'.$singleSearch.'%'; 
+			}
+			$search['search_mode'] = $searchMode;
 			$limit = 0;
 		}
 
-		$resp = $this->repo->getCandidates($limit, $searchTerm, $orderBy, $sortOrder);
-		if($resp['data'])
+
+		$resp = $this->repo->getCandidates($limit, $search, $orderBy, $sortOrder);
+		if(isset($resp['data']))
 		{
 			return response()->json($resp);
 		}

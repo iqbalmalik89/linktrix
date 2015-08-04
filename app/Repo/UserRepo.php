@@ -99,7 +99,7 @@ class UserRepo
 		return $userCode;
 	}
 
-	public function getSupervisorConsultants($userId)
+	public function getSupervisorConsultants($userId, $edit)
 	{
 		$users = $this->getUsers(0, 3);
 		if(!empty($users['data']))
@@ -112,6 +112,19 @@ class UserRepo
 		else
 		{
 			$users['data'] = array();
+		}
+
+		if(empty($edit) && !empty($users['data']))
+		{
+			$newArr = array();
+			foreach ($users['data'] as $key => $a) {
+	
+				if($a['is_consultant'] === 1)
+				{
+					$newArr[] = $a;
+				}
+			}
+			$users['data'] = $newArr;
 		}
 
 		return $users['data'];

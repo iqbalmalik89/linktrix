@@ -1680,7 +1680,7 @@ i.warning {
 }
 .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
 	background: none repeat scroll 0 0 #FFFFFF !important;
-	border: 2px solid #e74949 !important;
+	border: 2px solid #F1F2F7 !important;
 }
 .ui-slider-vertical {
 	width: 6px !important;

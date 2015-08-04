@@ -1,6 +1,21 @@
 // Event Binding
 $( document ).ready(function() {
 
+
+$('.basic_salary').on('keypress', function(ev) {
+    var keyCode = window.event ? ev.keyCode : ev.which;
+    //codes for 0-9
+    if (keyCode < 48 || keyCode > 57 || keyCode == 44) {
+        
+        //codes for backspace, delete, enter
+        if (keyCode != 0 && keyCode != 44 && keyCode != 8 && keyCode != 13 && !ev.ctrlKey) {
+
+            ev.preventDefault();
+        }
+    }
+});
+
+
 $('#search_form').on('keyup keypress', function(e) {
   var code = e.keyCode || e.which;
   if (code == 13) { 
@@ -18,18 +33,102 @@ $('#search_form').on('keyup keypress', function(e) {
       format:"dd/mm/yyyy"
      });
 
-  $('.default-date-picker').on('changeDate', function(ev){
-      $(this).datepicker('hide');
-  });
+  // $('.default-date-picker').on('changeDate', function(ev){
+  //     $(this).datepicker('hide');
+  // });
 
   $( "#removeCv" ).click(function() {
     removeCv();
   });
 
-  
-
 });
 
+
+function checkDuplicateCheck(email)
+{
+    $.ajax({
+      type: 'GET',
+      dataType:"JSON",
+      url: apiUrl + 'check_duplicate_check',
+      data: {email:email},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        if(data.status == 'success')
+        {
+
+        }
+        else if(data.status == 'error')
+        {
+          showMsg('#candidate_msg', data.message, 'red');          
+        }
+        else if(data.status == 'duplicate')
+        {
+          // $('#duplicate_msg').html('Do you want to share the candidate\'s information? <a class="btn btn-primary">Share Information</a>');
+          // $('#duplicate_span').fadeIn();
+          getCandidateDetail(data.data.id);
+          $('#candidate_detail').modal('show');  
+
+
+        }
+
+      },
+      error:function(){
+
+      }
+    });  
+}
+
+function getJobTitle()
+{
+
+    $.ajax({
+      type: 'GET',
+      dataType:"JSON",
+      url: apiUrl + 'job_title',
+      data: { },
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+      var sampleTags = data.job_titles;
+
+        $('#job_title_ul').tagit({
+            availableTags: data.job_titles,
+            // This will make Tag-it submit a single form value, as a comma-delimited field.
+            singleField: true,
+            singleFieldNode: $('#search_job_title'),
+            allowSpaces: true,
+            placeholderText:"Enter Job Title",            
+            afterTagAdded: function(evt, ui) {
+              if (!ui.duringInitialization) {
+                  searchCandidates();
+                  //addEvent('afterTagAdded: ' + eventTags.tagit('tagLabel', ui.tag));
+              }
+            },
+            afterTagRemoved: function(evt, ui) {
+              searchCandidates(); 
+              //addEvent('afterTagRemoved: ' + eventTags.tagit('tagLabel', ui.tag));
+            },
+
+        });        
+
+
+
+
+
+       // $('#tags_ul .ui-widget-content').attr('placeholder', 'Enter Tag');
+       // $('#job_title_ul  .ui-widget-content').attr('placeholder', 'Enter Job Title');
+
+      },
+      error:function(){
+
+      }
+    });  
+}
 function removeCv()
 {
   $('#cv').show();
@@ -84,6 +183,10 @@ function addUpdateCandidate()
 {
   // Mandatory
   var candidateId = $.trim($('#candidate_id').val());
+  if($('#consultant_id').length > 0)
+    var consultantId = $.trim($('#consultant_id').val());  
+  else
+    consultantId = 0;
   var firstName = $.trim($('#first_name').val());
   var lastName = $.trim($('#last_name').val());
   var email = $.trim($('#email').val());
@@ -188,7 +291,7 @@ function addUpdateCandidate()
     $.ajax({
       type: 'POST',
       url: apiUrl + 'candidate',
-      data: {candidate_id:candidateId, first_name: firstName, last_name:lastName, email:email, address:address, 
+      data: {consultant_id: consultantId, candidate_id:candidateId, first_name: firstName, last_name:lastName, email:email, address:address, 
         postal_code:postalCode, phone:phone, date_of_birth:dateOfBirth, nric:nric, citizen:citizen, gender:gender,
          marital_status:maritalStatus, nationality:nationality, notice_period_number: noticePeriodNumber,
          period_type:periodType, race:race, custom_race:customRace, religion:religion, company_names:companyNames,
@@ -206,7 +309,7 @@ function addUpdateCandidate()
           showMsg('#candidate_msg', data.message, 'green');
 
            setTimeout(function(){
-              $('#first_name').val('')
+              $('#first_name').val('');
               window.location = 'candidates';
             }, 3000);      
 
@@ -223,6 +326,10 @@ function addUpdateCandidate()
       }
     });    
   }
+}
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 function importFile()
@@ -263,7 +370,7 @@ function importFile()
     }
 }
 
-function getTags()
+function getTags(mode)
 {
     $.ajax({
       type: 'GET',
@@ -277,13 +384,46 @@ function getTags()
 
       var sampleTags = data.tags;
 
-      $('#tags_ul').tagit({
-          availableTags: data.tags,
-          // This will make Tag-it submit a single form value, as a comma-delimited field.
-          singleField: true,
-          singleFieldNode: $('#tags_field')
-      });
+      if(mode == '')
+      {
+        $('#tags_ul').tagit({
+            availableTags: data.tags,
+             allowSpaces: true,   
+            placeholderText:"Enter Tags",
+            // This will make Tag-it submit a single form value, as a comma-delimited field.
+            singleField: true,
+            singleFieldNode: $('#tags_field')
+        });
+      }
+      else
+      {
+        $('#tags_ul').tagit({
+            availableTags: data.tags,
+            allowSpaces: true,            
+            // This will make Tag-it submit a single form value, as a comma-delimited field.
+            singleField: true,
+            placeholderText:"Enter Tags",
+            singleFieldNode: $('#tags_field'),
+            afterTagAdded: function(evt, ui) {
+              if (!ui.duringInitialization) {
+                  searchCandidates();
+                  //addEvent('afterTagAdded: ' + eventTags.tagit('tagLabel', ui.tag));
+              }
+            },
+            afterTagRemoved: function(evt, ui) {
+              searchCandidates(); 
+              //addEvent('afterTagRemoved: ' + eventTags.tagit('tagLabel', ui.tag));
+            },
 
+        });        
+      }
+
+
+
+
+
+
+     //  $('.ui-widget-content').attr('placeholder', 'Enter Tags');
       },
       error:function(){
 
@@ -293,14 +433,18 @@ function getTags()
 
 function exportCandidates()
 {
-  var searchTerm = $.trim($('#search_term').val());
+  var searchName = $.trim($('#search_name').val());
+  var searchJobTitle = $.trim($('#search_job_title').val());
+  var searchTags = $.trim($('#tags_field').val());
+
+
   if(searchTerm != '')
   {
     $.ajax({
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'export_candidates',
-      data: {search_term: searchTerm},
+      data: {search_name: searchName, search_job_title:searchJobTitle, search_tags:searchTags},
       beforeSend:function(){
 
       },
@@ -325,7 +469,8 @@ function resetSearch()
 {
   $('#reset').fadeOut('fast');
   $('#search_count, #sort_span').html('');
-  $('#search_term').val('');  
+  $('.search_term, #tags_field, #search_job_title').val('');
+  $("#tags_ul, #job_title_ul").tagit("removeAll");  
   getCandidates(1);
 }
 
@@ -347,15 +492,15 @@ function unlockProfile()
 
         if(data.email != '')
         {
-          $('#phone').html(data.phone);
-          $('#email').html(data.email);
-          $('#home_number').html(data.home_number);
+          $('#lbl_phone').html(data.phone);
+          $('#lbl_email').html(data.email);
+          $('#lbl_home_number').html(data.home_number);
           if(data.cv_url != '')
-            $('#cv').html('<a target="_blank" style="text-decoration:underline;" href="'+data.cv_url+'"><i  style="text-decoration:underline;"class="fa fa-file"></i> Download CV</a> ' + ' Updated At:' + getFormatDate(data.cv_updated_at));
+            $('#lbl_cv').html('<a target="_blank" style="text-decoration:underline;" href="'+data.cv_url+'"><i  style="text-decoration:underline;"class="fa fa-save"></i> Download CV</a> ' + ' Updated At:' + getFormatDate(data.cv_updated_at));
           else
-            $('#cv').html('');
+            $('#lbl_cv').html('');
 
-          showMsg('#unlock_msg', 'An email is sent to the origional owner.', 'green');
+          showMsg('#lbl_unlock_msg', 'An email is sent to the origional owner.', 'green');
         }
 
       },
@@ -363,6 +508,14 @@ function unlockProfile()
 
       }
   });    
+}
+
+function previewCv(url)
+{
+  // $('#candidate_detail').modal('hide');
+  // $('#cv_preview').modal('show');  
+
+
 }
 
 function getCandidateDetail(candidateId)
@@ -380,70 +533,73 @@ function getCandidateDetail(candidateId)
 
       },
       success:function(data){
-        $('#cv').html('');
-        $('#candidateName').html('<b>' + data.data.first_name + ' ' + data.data.last_name  +  '</b>');
-        $('#lintrixk_id').html(data.data.linktrix_id);
-        $('#first_name').html(data.data.first_name);
-        $('#last_name').html(data.data.last_name);
-        $('#last_name').html(data.data.last_name);
-        $('#address').html(data.data.address);
+        $('#lbl_cv').html('');
+        $('#lbl_candidateName').html('<b>' + data.data.first_name + ' ' + data.data.last_name  +  '</b>');
+        $('#lbl_date_span').html('<b>Profile Created</b>: '+getFormatDate(data.data.created_at)+' | <b>Last Updated</b>: ' + getFormatDate(data.data.updated_at));
+        $('#lbl_lintrixk_id').html(data.data.linktrix_id);
+        $('#lbl_creator_name').html(data.data.owner);
+        $('#lbl_creater_image').html('<img style="width:50px;height:50px;" class="img-circle" src="'+data.data.owner_image+'">');        
+        $('#lbl_first_name').html(data.data.first_name);
+        $('#lbl_last_name').html(data.data.last_name);
+        $('#lbl_last_name').html(data.data.last_name);
+        $('#lbl_address').html(data.data.address);
         if(data.data.postal_code == 0)
-          $('#postal_code').html('');
+          $('#lbl_postal_code').html('');
         else
-          $('#postal_code').html(data.data.postal_code);
+          $('#lbl_postal_code').html(data.data.postal_code);
 
         if(data.data.date_of_birth == '0000-00-00')
-          $('#date_of_birth').html('');
+          $('#lbl_date_of_birth').html('');
         else
-          $('#date_of_birth').html(getFormatDate(data.data.date_of_birth));
+          $('#lbl_date_of_birth').html(getFormatDate(data.data.date_of_birth));
 
         if(data.data.is_owner)
         {
-          $('#home_number').html(data.data.home_number);
-          $('#email').html(data.data.email);
-          $('#phone').html(data.data.phone);
+          $('#lbl_home_number').html(data.data.home_number);
+          $('#lbl_email').html(data.data.email);
+          $('#lbl_phone').html(data.data.phone);
           if(data.data.cv_url != '')
-            $('#cv').html('<a target="_blank" style="text-decoration:underline;" href="'+data.data.cv_url+'"><i  style="text-decoration:underline;"class="fa fa-file"></i> Download CV</a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
+            $('#lbl_cv').html('<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
         }
         else
         {
-          $('#unlock_btn').show();          
-          var accesshtml = 'Restricted';
-          $('#email').html(accesshtml);
-          $('#phone').html(accesshtml);
-          $('#cv').html(accesshtml);  
-          $('#home_number').html(accesshtml);
+          $('#lbl_unlock_btn').show();          
+          var accesshtml = ''; //Restricted
+          $('#lbl_email').html(accesshtml);
+          $('#lbl_phone').html(accesshtml);
+          $('#lbl_cv').html(accesshtml);  
+          $('#lbl_home_number').html(accesshtml);
         }
 
-        $('#nric').html(data.data.nric);
-        $('#citizen').html(data.data.citizen);
+        $('#lbl_nric').html(data.data.nric);
+        $('#lbl_citizen').html(data.data.citizen);
 
 
         if(data.data.gender == 'male')
-          $('#gender').html('Male');
+          $('#lbl_gender').html('Male');
         else if(data.data.gender == 'female')
-          $('#gender').html('Female');
+          $('#lbl_gender').html('Female');
 
        if(data.data.marital_status == 'single')
-          $('#marital_status').html('Single');
+          $('#lbl_marital_status').html('Single');
         else if(data.data.marital_status == 'married')
-          $('#marital_status').html('Married');
+          $('#lbl_marital_status').html('Married');
         else if(data.data.marital_status == 'divorced')
-          $('#marital_status').html('Divorced');
+          $('#lbl_marital_status').html('Divorced');
 
-        $('#nationality').html(data.data.nationality);
+        $('#lbl_nationality').html(data.data.nationality);
         if(data.data.notice_period_number > 0)
-          $('#notice_period').html(data.data.notice_period_number + ' ' + data.data.period_type);
+          $('#lbl_notice_period').html(data.data.notice_period_number + ' ' + data.data.period_type);
         else
-          $('#notice_period').html('');
+          $('#lbl_notice_period').html('');
 
-        $('#race').html(data.data.race);
-        $('#religion').html(data.data.religion);
-        $('#remarks').html(data.data.remarks);
+        $('#lbl_race').html(data.data.race);
+        $('#lbl_religion').html(data.data.religion);
+        $('#lbl_remarks').html(data.data.remarks);
 
-        $('#tags').html(data.data.tags);
+        $('#lbl_tags').html(data.data.tags);
 
-        $('#highest_qualification').html(data.data.highest_qualification);
+        $('#lbl_highest_qualification').html(data.data.highest_qualification);
 
         // if(data.data.cv_path != '' && data.data.cv_path != null)
         // {
@@ -462,12 +618,12 @@ function getCandidateDetail(candidateId)
 
             companyHtml += '<tr class="txtcolor"><td>'+ (index + 1) +'</td>\
                       <td>'+company.company_name+'</td>\
-                      <td>'+company.basic_salary+'</td>\
+                      <td>'+numberWithCommas(company.basic_salary)+'</td>\
                       <td>'+ getFormatDate(company.from_date)  + ' '+seperator+' ' + getFormatDate(company.to_date) + '</td>\
                       <td>' + company.position + '</td></tr>';
           });
 
-          $('#work_body').html(companyHtml);
+          $('#lbl_work_body').html(companyHtml);
       },
       error:function(){
 
@@ -503,8 +659,17 @@ function deleteCandidate(candidateId)
 
 function getCandidates(page)
 {
+  var searchMode = $('input[name="search_mode"]:checked').val();
+
   $('#search_count').html('');
-  var searchTerm = $.trim($('#search_term').val());
+  var searchName = $.trim($('#search_name').val());
+  var searchJobTitle = $.trim($('#search_job_title').val());
+  var searchTags = $.trim($('#tags_field').val());
+  var search = false;
+
+  if(searchName != '' || searchJobTitle != '' || searchTags != '')
+    var search = true;
+
   var orderBy = $.trim($('#order_by').val());  
   var sortOrder = $.trim($('#sort_order').val());
 
@@ -512,7 +677,7 @@ function getCandidates(page)
     $.ajax({
       type: 'get',
       url: apiUrl + 'candidates',
-      data: { limit: limit, page:page, search_term:searchTerm, sort_order:sortOrder, order_by:orderBy},
+      data: {search_mode:searchMode,  limit: limit, page:page, search_name:searchName, search_job_title :searchJobTitle, search_tags: searchTags, sort_order:sortOrder, order_by:orderBy},
       dataType:"JSON", 
       beforeSend:function(){
 
@@ -524,7 +689,7 @@ function getCandidates(page)
         {
           if(data.data.data.length)
           {
-              if(searchTerm != '')
+              if(search != '')
               {                
                 $('#search_count').html(data.data.data.length + ' records found <button type="submit" class="btn btn-primary"><i class="fa fa-download"></i> Export Candidates</button>');
               }
@@ -571,13 +736,13 @@ function getCandidates(page)
                             <td>'+candidate.email+'</td>\
                             <td>'+candidate.company_name+'</td>\
                             <td>'+candidate.position+'</td>\
-                            <td>'+candidate.basic_salary+'</td>\
+                            <td>'+numberWithCommas(candidate.basic_salary)+'</td>\
                             <td>'+actions+'</td>\
                             <tr>';
 
               });
 
-            if(searchTerm != '')
+            if(search != '')
             {
              $('#candidates_pagination').hide('');
             }
@@ -599,7 +764,7 @@ function getCandidates(page)
         }
 
         if(html == '')
-          html = '<tr><td colspan="6" align="center">No Candidate found</td></tr>';
+          html = '<tr><td colspan="7" align="center">No Candidate found</td></tr>';
 
         $('#candidates_body').html(html);
 
@@ -610,7 +775,7 @@ function getCandidates(page)
     });    
 }
 
-function searchCandidates(searchTerm)
+function searchCandidates()
 {
     fillSort('asc');  
     $('#search_spinner, #reset').show();
@@ -736,6 +901,38 @@ function getOwner(candidate_id, type)
 
       }
     });
+}
+
+function getConsultant()
+{
+    $.ajax({
+      type: 'get',
+      url: apiUrl + 'users',
+      data: { limit: 0, page:0, role_id: 3},
+      dataType:"JSON", 
+      beforeSend:function(){
+
+      },
+      success:function(data){
+        var html = '<option>--Select Consultant--</option>';
+
+        if(typeof data.data != "undefined")
+        {
+          if(data.data.length)
+          {
+              $(data.data).each(function(index, user) {
+                html += '<option value="'+user.id+'">'+user.name+'</option>';
+              });
+          }
+        }
+
+        $('#consultant_id').html(html);
+
+      },
+      error:function(){
+
+      }
+    });    
 }
 
 function addCandidateOwner()

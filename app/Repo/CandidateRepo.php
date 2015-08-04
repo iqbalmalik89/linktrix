@@ -19,6 +19,19 @@ class CandidateRepo
 		$this->userRepo	= new UserRepo(new RoleRepo);
     }
 
+    public function getJobTitle()
+    {
+    	$titles = array();
+    	$companies = CandidateCompany::distinct()->get(array('position'))->toArray();
+    	if(!empty($companies))
+    	{
+    		foreach ($companies as $key => $position) {
+    			$titles[] = trim($position['position']);
+    		}
+    	}
+    	return $titles;
+    }
+
 	public function getCandidateOwner($candidateId, $roleId)
 	{
 		$usersArr = [];
@@ -105,8 +118,11 @@ class CandidateRepo
 
 	public function getLintrixId($candidateId)
 	{
-		if(!is_integer($candidateId))
+		if(!is_numeric($candidateId))
+		{
 			$candidateId = base64_decode($candidateId);
+		}
+
 		$newId = 0;
 		$value = '';
 		$intArr = range(1, 25);
@@ -122,7 +138,10 @@ class CandidateRepo
 		}
 
 
+
 		$alphabetArr = range('A','Z');
+
+
 		$alphabet = $alphabetArr[$i];
 
 		$j = $i - 1;
@@ -156,6 +175,33 @@ class CandidateRepo
 		}
 	}
 
+	public function checkDuplicateCheck($email)
+	{
+		$candidateRec = $this->checkEmailDuplicate(0, $email);
+		if(!empty($candidateRec))
+		{
+			$role = $this->getUserRole();
+			$isOwner = $this->isOwner($candidateRec->id, $role);
+
+			// If owner, just gave error of existing email
+			if($isOwner)
+			{
+				return 0;
+			}
+			else
+			{
+				$candidateId = base64_encode($candidateRec->id);
+				$candidateData =  $this->get($candidateId);
+//				print_r($candidateData);
+				return $candidateData;
+			}
+		}
+		else
+		{
+			return 2;
+		}
+	}
+
 	public function addUpdateCandidate($params)
 	{
 		$emailDuplicate = false;
@@ -180,13 +226,16 @@ class CandidateRepo
 		if(!empty($candidateId))
 		{
 			// update candidate
-			return $this->updateCandidate($candidateId, $params);			
+			$ret = $this->updateCandidate($candidateId, $params);
+			$this->addCompanies($candidateId, $params['company_names'], $params['basic_salary'], $params['from_dates'], $params['to_dates'], $params['positions']);			
+			return $ret;
 		}
 		else
 		{
 			$candidateRec = $this->checkEmailDuplicate(0, $params['email']);
 			if(!empty($candidateRec))
 			{
+				return 0;
 				$role = $this->getUserRole();
 				$isOwner = $this->isOwner($candidateRec->id, $role);
 
@@ -376,7 +425,13 @@ class CandidateRepo
 		$user = \Session::get('user');
 		$creatorId = $user['id'];
 		$newCandidate = new Candidate();
-		$newCandidate->creator_id = $creatorId;		
+		if(!empty($params['consultant_id']))
+		{			
+			$newCandidate->creator_id = $params['consultant_id'];
+		}
+		else			
+			$newCandidate->creator_id = $creatorId;
+
 		$newCandidate->first_name = $params['first_name'];
 		$newCandidate->last_name = $params['last_name'];
 		if(isset($params['address']))
@@ -432,6 +487,8 @@ class CandidateRepo
 		if(isset($params['remarks']))
 			$newCandidate->remarks = $params['remarks'];		
 		$newCandidate->save();
+
+		// $this->addOwner($newCandidate->id, array($creatorId));
 		return $newCandidate->id;
 	}
 
@@ -548,6 +605,9 @@ class CandidateRepo
 	{
 		$exportData = array();
 		$candidates = $this->getCandidates(0, $searchTerm, 'basic_salary', 'asc');
+		// echo "<pre>";
+		// print_r($candidates);
+		// die();
 		if(!empty($candidates['data']))
 		{
 			// heading
@@ -583,13 +643,17 @@ class CandidateRepo
 				unset($exportElement['old_last_name']);
 				unset($exportElement['old_phone']);
 				unset($exportElement['old_cv_path']);
+				unset($exportElement['owner_image']);
+				$exportElement['id'] = $exportElement['linktrix_id'];
+				unset($exportElement['linktrix_id']);
+
 
 				if(empty($exportElement['is_owner']))
 				{
-					// mask contact details
-					$exportElement['email'] = 'Restricted';
-					$exportElement['phone'] = 'Restricted';
-					$exportElement['home_number'] = 'Restricted';					
+					// mask contact details // restricted
+					$exportElement['email'] = '';
+					$exportElement['phone'] = '';
+					$exportElement['home_number'] = '';					
 				}
 
 
@@ -636,18 +700,20 @@ class CandidateRepo
 				$exportElement['updated_at'] = $updatedAt;
 				$exportData[] = $exportElement;
 			}
+
+			$config = new ExporterConfig();
+			$exporter = new Exporter($config);
+			$fileName = 'Export-'.date('Y-m-d').'Time'.date('H:i').'.csv';
+
+			header('Content-Type: application/csv');
+			header('Content-Disposition: attachment; filename=Export-'.date('Y-m-d H:i').'.csv');
+			header('Pragma: no-cache');
+
+			$exporter->export('php://output', $exportData);
 		}
 
 
-		$config = new ExporterConfig();
-		$exporter = new Exporter($config);
-		$fileName = 'Export-'.date('Y-m-d').'Time'.date('H:i').'.csv';
 
-		header('Content-Type: application/csv');
-		header('Content-Disposition: attachment; filename=Export-'.date('Y-m-d H:i').'.csv');
-		header('Pragma: no-cache');
-
-		$exporter->export('php://output', $exportData);
 
 		return array('file' => $fileName);
 	}
@@ -681,41 +747,99 @@ class CandidateRepo
 
 
 
-	public function getCandidates($limit, $searchTerm, $orderby, $sortOrder)
+	public function getCandidates($limit, $search, $orderby, $sortOrder)
 	{
     	$data = array();
-    	if(!empty($searchTerm))
+    	$searchBool = false;
+
+    	$searchName = $search['search_name'];
+    	$searchJobTitle = $search['search_job_title'];
+    	$searchTags = $search['search_tags'];
+    	$searchMode = $search['search_mode'];
+
+    	if(!empty($searchName) || !empty($searchJobTitle) || !empty($searchTags))
     	{
-			$candidates = Candidate::where('first_name', 'like' , $searchTerm)
-						  		   ->orWhere('last_name', 'like' , $searchTerm)
-						  		   ->orWhere('address', 'like' , $searchTerm)					  		   
-						  		   ->orWhere('postal_code', 'like' , $searchTerm)
-						  		   ->orWhere('home_number', 'like' , $searchTerm)						  		   
-						  		   ->orWhere('phone', 'like' , $searchTerm)
-						  		   ->orWhere('email', 'like' , $searchTerm)
-						  		   ->orWhere('nric', 'like' , $searchTerm)
-						  		   ->orWhere('citizen', 'like' , $searchTerm)
-						  		   ->orWhere('gender', 'like' , $searchTerm)
-						  		   ->orWhere('marital_status', 'like' , $searchTerm)
-						  		   ->orWhere('nationality', 'like' , $searchTerm)
-						  		   ->orWhere('highest_qualification', 'like' , $searchTerm)
-						  		   ->orWhere('race', 'like' , $searchTerm)
-						  		   ->orWhere('religion', 'like' , $searchTerm)
-						  		   ->orWhere('tags', 'like' , $searchTerm);
+    		$searchBool = true;
+    		$searchNamePart = '';
+    		$searchTagsPart = '';
+    		$searchJobTitlePart = '';
+    		if(!empty($searchTags))
+    		{
+    			$searchTags = explode(',' , $searchTags);
+	    		$tagsLength = count($searchTags) - 1;
+
+    			foreach ($searchTags as $key => $searchTag) {
+    				$key++;
+    				if($key <= $tagsLength)
+    					$orOperator = ' OR ';
+    				else
+    					$orOperator = ' ';
+
+    				$searchTag = '%'.$searchTag.'%';
+    				$searchTagsPart .= ' c.tags LIKE "'.$searchTag.'" '.$orOperator;
+    			}
+    		}
+
+
+    		if(!empty($searchName))
+    		{
+    			$searchNamePart = ' (c.first_name LIKE "'.$searchName.'" OR c.last_name LIKE "'.$searchName.'") ';
+    		}
+
+    		if(!empty($searchJobTitle))
+    		{
+    			if(!empty($searchNamePart))
+    				$searchNamePart = ' '.$searchMode.' ('. $searchNamePart.')';
+    			if(!empty($searchTagsPart))
+    				$searchTagsPart = ' '.$searchMode.' ('. $searchTagsPart.')';
+
+
+    			$searchJobTitleArr = explode(',' , $searchJobTitle);
+	    		$searchJobTitleArrLength = count($searchJobTitleArr) - 1;
+
+    			foreach ($searchJobTitleArr as $key => $searchJobTitleItem) {
+    				$key++;
+    				if($key <= $searchJobTitleArrLength)
+    					$orOperator = ' OR ';
+    				else
+    					$orOperator = ' ';
+
+    				$searchJobTitleItem = '%'.$searchJobTitleItem.'%';
+    				$searchJobTitlePart .= ' cc.position LIKE "'.$searchJobTitleItem.'" '.$orOperator;
+    			}
+
+
+
+
+
+    			$query = 'select c.id from candidates as c, candidate_companies as cc where c.id = cc.candidate_id
+    			 AND ( '.$searchJobTitlePart.') '.$searchNamePart.' '.$searchTagsPart.'   group by c.id';
+    		}
+    		else
+    		{
+    			if(!empty($searchNamePart) && !empty($searchTagsPart))
+    				$searchTagsPart = ' '.$searchMode.' '.$searchTagsPart;
+    			$query = 'select c.id from candidates as c where '.$searchNamePart.' '.$searchTagsPart.' group by c.id';
+    		}
+
+			$candidates = \DB::select($query);
+
     	}
 		else
-			$candidates = Candidate::where('id', '>', '0');
+			$candidates = Candidate::where('id', '>', '0')->orderBy('id', 'desc');
 
 		if(!empty($candidates))
 		{
-	    	$candidates = $candidates->orderBy('id', 'desc');
-
-	    	if(!empty($limit)){
-		    	$candidates = $candidates->paginate($limit);
-	    	}
-			else {
-				$candidates = $candidates->get();
+			if(!$searchBool)
+			{
+		    	if(!empty($limit)){
+			    	$candidates = $candidates->paginate($limit);
+		    	}
+				else {
+					$candidates = $candidates->get();
+				}				
 			}
+
 
 			foreach ($candidates as $candidate) {
 	            $candidateData = $this->get(base64_encode($candidate->id));
@@ -723,8 +847,8 @@ class CandidateRepo
 	            // Hide data if owner is not accessing
 	            if(!$candidateData['is_owner'])
 	            {
-	            	$candidateData['email'] = 'Restricted';
-	            	$candidateData['phone'] = 'Restricted';	            	
+	            	$candidateData['email'] = ''; // restricted
+	            	$candidateData['phone'] = '';	            	
 	            }
 
 
@@ -738,7 +862,7 @@ class CandidateRepo
 	        }
 		}
 
-		if($searchTerm != '' && $orderby != '' && !empty($data['data']['data']))
+		if($searchBool != '' && $orderby != '' && !empty($data['data']['data']))
 		{
 			if($orderby == 'basic_salary')
 			{
@@ -793,11 +917,13 @@ class CandidateRepo
 				if(!empty($candidateData['creator_id']))
 				{
 					$userData = $this->userRepo->get($candidateData['creator_id']);
-					$candidateData['owner'] = $userData['name'];
+					$candidateData['owner'] = ucfirst($userData['name']);
+					$candidateData['owner_image'] = $userData['url'];
 				}
 				else
 				{
 					$candidateData['owner'] = "";					
+					$candidateData['owner_image'] = '';
 				}
 
 				if(!empty($candidateData['companies']))

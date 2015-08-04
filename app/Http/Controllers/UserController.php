@@ -49,7 +49,8 @@ class UserController extends BaseController
     public function getSupervisorConsultants()
     {
 		$userId = \Request::input('user_id');
-		$resp = $this->repo->getSupervisorConsultants($userId);
+		$edit = \Request::input('edit');
+		$resp = $this->repo->getSupervisorConsultants($userId, $edit);
 		if($resp)
 		{
 			return response()->json(array('status' => 'success', 'data' => $resp));

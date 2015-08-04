@@ -79,6 +79,8 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->get('export_candidates', 'App\Http\Controllers\CandidateController@exportCandidates');
 	$app->get('export_download', 'App\Http\Controllers\CandidateController@exportDownload');
 	$app->post('unlock_candidate', 'App\Http\Controllers\CandidateController@unlockCandidate');
+	$app->get('job_title', 'App\Http\Controllers\CandidateController@getJobTitle');
+	$app->get('check_duplicate_check', 'App\Http\Controllers\CandidateController@checkDuplicateCheck');
 
 
 
