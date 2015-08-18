@@ -46,6 +46,24 @@ class CandidateController extends BaseController
 		} 		
  	}
 
+ 	public function changeCreator()
+ 	{
+		$candidateId = base64_decode(\Request::input('candidate_id'));
+		$creatorId = \Request::input('creator_id');
+
+		$data = $this->repo->changeCreator($candidateId, $creatorId);
+
+		if($data)
+		{
+			return response()->json(array('status' => 'success'));
+		}
+		else
+		{
+			return response()->json(array('status' => 'error'));
+		}
+
+ 	}
+
  	public function getJobTitle()
  	{
 
@@ -58,6 +76,23 @@ class CandidateController extends BaseController
 		else
 		{
 			return response()->json(array('data' => array()));
+		}
+
+ 	}
+
+ 	public function undeleteCandidate()
+ 	{
+		$candidateId = base64_decode(\Request::input('candidate_id'));
+
+		$data = $this->repo->undeleteCandidate($candidateId);
+
+		if($data)
+		{
+			return response()->json(array('status' => 'success'));
+		}
+		else
+		{
+			return response()->json(array('status' => 'error'));
 		}
 
  	}
@@ -123,12 +158,27 @@ class CandidateController extends BaseController
 
 		if($accessCheck == 'yes')
 		{
-			if(!$data['is_owner'])
+			if(!$data['is_owner'] &&  empty($data['candidate_sharing']))
 			{
-				$data['email'] = 'strict';
-				$data['home_number'] = 'strict';				
-				$data['phone'] = 'strict';				
-				$data['cv_url'] = 'strict';
+				if(!empty($data['email']))
+					$data['email'] = 'Restricted';
+				else
+					$data['email'] = '';
+
+				if(!empty($data['home_number']))
+					$data['home_number'] = 'Restricted';
+				else
+					$data['home_number'] = '';
+	
+				if(!empty($data['phone']))	
+					$data['phone'] = 'Restricted';
+				else	
+					$data['phone'] = '';
+
+				if(!empty($data['cv_url']))
+					$data['cv_url'] = 'Restricted';				
+				else
+					$data['cv_url'] = '';
 			}
 		}
 
@@ -141,6 +191,22 @@ class CandidateController extends BaseController
 			return response()->json(array('data' => array()));
 		}
 
+	}
+
+	public function undeleteRequest()
+	{
+		$candidateId = base64_decode(\Request::input('candidate_id'));
+    	$resp = $this->repo->undeleteRequest($candidateId);
+
+		if($resp)
+		{
+			$data = array('status' => 'success');
+		}
+		else
+		{
+			$data = array('status' => 'error');
+		}
+		return response()->json($data);				
 	}
 	
 	public function importCsv()
@@ -167,16 +233,22 @@ class CandidateController extends BaseController
     public function checkDuplicateCheck()
     {
     	$email = \Request::get('email');
-    	$resp = $this->repo->checkDuplicateCheck($email);
+    	$encodedCandidateId = \Request::get('candidate_id');
+    	$candidateId = base64_decode($encodedCandidateId);
+    	$resp = $this->repo->checkDuplicateCheck($candidateId, $email);
 
-    	if($resp === 0)
+    	if($resp['code'] === 0)
     	{
 			$data = array('status' => 'error', 'message' => 'A candidate already exists with this email.');
     	}
-		else if($resp === 2)
+		else if($resp['code'] === 2)
 		{
 			$data = array('status' => 'success');
 		}
+		else if($resp['code'] === 3)
+		{
+			$data = array('status' => 'deleted', 'candidate_id' => $resp['candidate_id']);
+		}		
 		else
 		{
 			unset($resp['phone']);

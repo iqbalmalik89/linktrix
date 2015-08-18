@@ -78,7 +78,7 @@
 
       <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title" id="myModalLabel">Confirm Delete</h4>
+          <h4 class="modal-title" id="myModalLabel">Confirmation</h4>
       </div>
   
       <div class="modal-body">
@@ -88,7 +88,35 @@
       <!-- dialog buttons -->
       <div class="modal-footer">
 
-      <button type="button" data-dismiss="modal" class="btn btn-primary" id="delete">Delete</button>
+      <button type="button" data-dismiss="modal" class="btn btn-primary" id="delete">Yes</button>
+      <button type="button" data-dismiss="modal" class="btn">No</button>
+ 
+      </div>
+    </div>
+  </div>
+</div>
+
+
+   <div id="undelete_request" class="modal fade" style="z-index:99999!important">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- dialog body -->
+
+
+
+      <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="myModalLabel">Deleted Candidate</h4>
+      </div>
+  
+      <div class="modal-body">
+          <p>This candidate is deleted by another User. Click on Send Request to request admin to restore the candidate.</p>
+      </div>
+      
+      <!-- dialog buttons -->
+      <div class="modal-footer">
+
+      <button type="button" data-dismiss="modal" class="btn btn-primary" id="undel_btn">Send Request</button>
       <button type="button" data-dismiss="modal" class="btn">Cancel</button>
  
       </div>

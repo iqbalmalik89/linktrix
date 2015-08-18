@@ -47,7 +47,7 @@ class BackupRepo
 			{
 				$backup->created_by_name = '';				
 			}
-
+			$backup->date_created = date('Y-m-d H:i:s', strtotime($backup->date_created) + 28800);
 			return $backup;
 		}
 		else

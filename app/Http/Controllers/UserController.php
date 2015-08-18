@@ -29,6 +29,25 @@ class UserController extends BaseController
 		return response()->json($data);		
     }
 
+    public function allUsers()
+    {
+    	$candidateId = \Request::input('candidate_id');
+    	if(!empty($candidateId))
+	    	$candidateId = base64_decode($candidateId);
+
+    	$resp = $this->repo->allUsers($candidateId);
+
+		if($resp['users'])
+		{
+			$data = array('status' => 'success', 'users' => $resp['users'], 'creater_id' => $resp['creater_id']);
+		}
+		else
+		{
+			$data = array('status' => 'error');
+		}
+		return response()->json($data);		
+    }
+
     public function changeStatus()
     {
     	$userId = \Request::input('user_id');

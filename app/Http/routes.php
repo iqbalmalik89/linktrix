@@ -67,6 +67,7 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->post('supervisor_consultants', 'App\Http\Controllers\UserController@addSupervisorConsultants');
 	$app->get('tags', 'App\Http\Controllers\TagController@getTags');
 	$app->post('user_status', 'App\Http\Controllers\UserController@changeStatus');
+	$app->get('allusers', 'App\Http\Controllers\UserController@allUsers');
 
 
 	//Candidate
@@ -81,6 +82,9 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->post('unlock_candidate', 'App\Http\Controllers\CandidateController@unlockCandidate');
 	$app->get('job_title', 'App\Http\Controllers\CandidateController@getJobTitle');
 	$app->get('check_duplicate_check', 'App\Http\Controllers\CandidateController@checkDuplicateCheck');
+	$app->post('change_creator', 'App\Http\Controllers\CandidateController@changeCreator');
+	$app->post('undelete_candidate', 'App\Http\Controllers\CandidateController@undeleteCandidate');
+	$app->post('undelete_request', 'App\Http\Controllers\CandidateController@undeleteRequest');
 
 
 

@@ -62,6 +62,8 @@ function showDelPopup(id, module)
   		$('#confirm #delete').attr('onclick', 'deleteUser('+id+')')
     else if(module == 'candidate')
       $('#confirm #delete').attr('onclick', 'deleteCandidate(\''+id+'\')')
+    else if(module == 'undelete')
+      $('#confirm #delete').attr('onclick', 'undeleteCandidate(\''+id+'\')')
 
 
 

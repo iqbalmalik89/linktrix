@@ -43,14 +43,42 @@ $('#search_form').on('keyup keypress', function(e) {
 
 });
 
+function UndeleteRequest(candidate_id)
+{
+    $.ajax({
+      type: 'POST',
+      dataType:"JSON",
+      url: apiUrl + 'undelete_request',
+      data: {candidate_id:candidate_id},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        if(data.status == 'success')
+        {
+          showMsg('#candidate_msg', 'Candidate restore request sent to admin', 'green');          
+        }
+        else
+        {
+          showMsg('#candidate_msg', 'Some problem occured to send request.', 'red');          
+        }      
+
+      },
+      error:function(){
+
+      }
+    });  
+}
 
 function checkDuplicateCheck(email)
 {
+  var candidateId = $('#candidate_id').val();
     $.ajax({
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'check_duplicate_check',
-      data: {email:email},
+      data: {email:email, candidate_id:candidateId},
       beforeSend:function(){
 
       },
@@ -60,6 +88,11 @@ function checkDuplicateCheck(email)
         {
 
         }
+        else if(data.status == 'deleted')
+        {
+          $('#undelete_request').modal('show');  
+          $('#undel_btn').attr('onclick', 'UndeleteRequest(\''+data.candidate_id+'\')')
+        }        
         else if(data.status == 'error')
         {
           showMsg('#candidate_msg', data.message, 'red');          
@@ -501,6 +534,7 @@ function unlockProfile()
             $('#lbl_cv').html('');
 
           showMsg('#lbl_unlock_msg', 'An email is sent to the origional owner.', 'green');
+          $('#lbl_unlock_btn').hide();
         }
 
       },
@@ -535,7 +569,11 @@ function getCandidateDetail(candidateId)
       success:function(data){
         $('#lbl_cv').html('');
         $('#lbl_candidateName').html('<b>' + data.data.first_name + ' ' + data.data.last_name  +  '</b>');
-        $('#lbl_date_span').html('<b>Profile Created</b>: '+getFormatDate(data.data.created_at)+' | <b>Last Updated</b>: ' + getFormatDate(data.data.updated_at));
+        var dateString = '<b>Profile Created</b>: '+getFormatDate(data.data.created_at);
+        if(data.data.updated_at != '')
+          dateString += ' | <b>Last Updated</b>: ' + getFormatDate(data.data.updated_at);
+
+        $('#lbl_date_span').html(dateString);
         $('#lbl_lintrixk_id').html(data.data.linktrix_id);
         $('#lbl_creator_name').html(data.data.owner);
         $('#lbl_creater_image').html('<img style="width:50px;height:50px;" class="img-circle" src="'+data.data.owner_image+'">');        
@@ -553,22 +591,23 @@ function getCandidateDetail(candidateId)
         else
           $('#lbl_date_of_birth').html(getFormatDate(data.data.date_of_birth));
 
-        if(data.data.is_owner)
+        if(data.data.is_owner || data.data.candidate_sharing)
         {
           $('#lbl_home_number').html(data.data.home_number);
           $('#lbl_email').html(data.data.email);
           $('#lbl_phone').html(data.data.phone);
           if(data.data.cv_url != '')
             $('#lbl_cv').html('<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
+          $('#lbl_unlock_btn').hide();          
         }
         else
         {
-          $('#lbl_unlock_btn').show();          
+          $('#lbl_unlock_btn').show();
           var accesshtml = ''; //Restricted
-          $('#lbl_email').html(accesshtml);
-          $('#lbl_phone').html(accesshtml);
-          $('#lbl_cv').html(accesshtml);  
-          $('#lbl_home_number').html(accesshtml);
+          $('#lbl_email').html(data.data.email);
+          $('#lbl_phone').html(data.data.phone);
+          $('#lbl_cv').html(data.data.cv_url);  
+          $('#lbl_home_number').html(data.data.home_number);
         }
 
         $('#lbl_nric').html(data.data.nric);
@@ -705,6 +744,7 @@ function getCandidates(page)
                 var actions = '';
                 var deleteHtml = '';
                 var actions = '';
+                var undeleteHtml = '';
 
                 if(candidate.is_owner == true)
                 {
@@ -718,18 +758,31 @@ function getCandidates(page)
 
                 if(globalRoleType == 'admin' || candidate.is_owner)
                 {
-                  deleteHtml = '<a href="javascript:void(0);" onclick="showDelPopup(\''+candidate.id+'\', \'candidate\')">Delete</a>';
+                  var deleteStr = 'Delete';
+
+                  if(globalRoleType == 'admin')
+                  {
+                    if(candidate.deleted == '1')
+                    {
+                      deleteStr = 'Hard Delete';
+                      undeleteHtml = ' <br> <a href="javascript:void(0);" onclick="showDelPopup(\''+candidate.id+'\', \'undelete\')">Undelete</a>';                      
+                    }
+                  }
+
+                  deleteHtml = '<a href="javascript:void(0);" onclick="showDelPopup(\''+candidate.id+'\', \'candidate\')">'+deleteStr+'</a>';
                 }
 
                 if(editHtml != '' && assignHtml != '')
-                  actions = editHtml+ ' | ' + assignHtml;
+                  actions = editHtml+ ' <br> ' + assignHtml;
                 else if(editHtml == '' || assignHtml == '')
                   actions = editHtml+ assignHtml;
 
                 if(actions != '' && deleteHtml !='')
-                  actions += ' | ' + deleteHtml;
+                  actions += ' <br> ' + deleteHtml;
                 else
                   actions += deleteHtml;
+                actions += undeleteHtml;
+
 
                 html += '<tr><td><a onclick="getCandidateDetail(\''+candidate.id+'\');" data-toggle="modal" data-target="#candidate_detail" href="javascript:void(0);">'+ candidate.first_name + ' '+  candidate.last_name+ '</a><br>'+candidate.linktrix_id+'</td>\
                             <td>'+candidate.owner+'</td>\
@@ -773,6 +826,35 @@ function getCandidates(page)
 
       }
     });    
+}
+
+function undeleteCandidate(id)
+{
+  $.ajax({
+      type: 'POST',
+      dataType:"JSON",
+      url: apiUrl + 'undelete_candidate',
+      data: {candidate_id: id},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        getCandidates(1);
+        if(data.status == 'success')
+        {
+          showMsg('#user_msg', 'User undeleted successfully', 'green');          
+        }
+        else
+        {
+          showMsg('#user_msg', 'Some problem occured while undeleting this candidate.', 'red');          
+        }
+
+      },
+      error:function(){
+
+      }
+  });    
 }
 
 function searchCandidates()
@@ -868,6 +950,7 @@ function getCandidate(candidateId)
 
 function getCandidateOwner(candidate_id)
 {
+  getConsultant(candidate_id);
   getOwner(candidate_id, 1);
   getOwner(candidate_id, 2);
   getOwner(candidate_id, 3);
@@ -903,31 +986,91 @@ function getOwner(candidate_id, type)
     });
 }
 
-function getConsultant()
+function changeCreator()
 {
+  var candidateId = $('#candidate_id').val();
+  var consultantId = $('#consultant_id').val();    
     $.ajax({
-      type: 'get',
-      url: apiUrl + 'users',
-      data: { limit: 0, page:0, role_id: 3},
+      type: 'post',
+      url: apiUrl + 'change_creator',
+      data: {candidate_id: candidateId, creator_id:consultantId},
       dataType:"JSON", 
       beforeSend:function(){
 
       },
       success:function(data){
-        var html = '<option>--Select Consultant--</option>';
-
-        if(typeof data.data != "undefined")
+        if(data.status == 'success')
         {
-          if(data.data.length)
+          $('#assignCandidatePopup').modal('hide');
+        }
+      },
+      error:function(){
+
+      }
+    });    
+
+}
+
+function getConsultant(candidateId)
+{
+    $.ajax({
+      type: 'get',
+      url: apiUrl + 'allusers',
+      data: {candidate_id: candidateId},
+      dataType:"JSON", 
+      beforeSend:function(){
+
+      },
+      success:function(data){
+        if(candidateId == '')
+          var html = '<option value="">--Select Candidate Holder--</option>';
+        else 
+          var html = ''; 
+
+        var adminhtml = '';
+        var supervisorhtml = '';
+        var consultanthtml = '';
+        var assistanthtml = '';
+
+        if(typeof data.users != "undefined")
+        {
+          if(data.users.length)
           {
-              $(data.data).each(function(index, user) {
-                html += '<option value="'+user.id+'">'+user.name+'</option>';
+              $(data.users).each(function(index, user) {
+
+                if(data.creater_id == user.id)
+                  var selected = 'selected="selected"';
+                else
+                  var selected = '';
+                if(user.role_id == 1)
+                  adminhtml += '<option '+selected+' value="'+user.id+'">'+user.name+'</option>';
+
+                if(user.role_id == 2)
+                  supervisorhtml += '<option '+selected+' value="'+user.id+'">'+user.name+'</option>';
+
+                if(user.role_id == 3)
+                  consultanthtml += '<option '+selected+' value="'+user.id+'">'+user.name+'</option>';                
+
+                if(user.role_id == 4)
+                  assistanthtml += '<option '+selected+' value="'+user.id+'">'+user.name+'</option>';
               });
           }
         }
 
+        if(adminhtml != '')
+          adminhtml = '<optgroup label="Admin">' + adminhtml + '</optgroup>';
+        if(supervisorhtml != '')
+          supervisorhtml = '<optgroup label="Supervisor">' + supervisorhtml + '</optgroup>';
+        if(consultanthtml != '')
+          consultanthtml = '<optgroup label="Consultant">' + consultanthtml + '</optgroup>';
+        if(assistanthtml != '')
+          assistanthtml = '<optgroup label="Assistant">' + assistanthtml + '</optgroup>';
+
+        html += adminhtml + supervisorhtml + consultanthtml + assistanthtml;
         $('#consultant_id').html(html);
 
+
+        $('#consultant_id').selectpicker('refresh');
       },
       error:function(){
 

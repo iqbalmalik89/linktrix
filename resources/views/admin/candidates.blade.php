@@ -44,11 +44,36 @@ th
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title" id="popupLabel">Assign Candidate to Users</h4>
+                <h4 class="modal-title" id="popupLabel">Reassign</h4>
             </div>
             <div class="modal-body">
                 <form role="form" class="form-horizontal">
 
+                <h4>Assign Candidate Holder</h4>
+                <hr>
+
+                    <div class="form-group">
+                        <label class="col-lg-3 control-label" for="recipient-name">User :</label>
+                        <div class="col-lg-6">
+
+                          <select id="consultant_id" name="consultant_id" class="selectpicker" data-live-search="true">
+
+                          </select>
+
+                        </div>
+                    </div>
+
+            <div class="modal-footer">
+                <button type="button" onclick="changeCreator();" class="btn btn-primary">Save </button>
+            </div>
+
+
+
+
+
+
+                <h4>Add Ownership</h4>
+                <hr>
                     <div class="form-group">
                         <label class="col-lg-3 control-label" for="recipient-name">Admin :</label>
                         <div class="col-lg-6">
@@ -97,7 +122,8 @@ th
                     </div>                    
 
                 </form>
-            </div>      <div class="modal-footer">
+            </div>      
+            <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 
                 <button type="button" onclick="addCandidateOwner();" class="btn btn-primary">Save </button>
@@ -184,12 +210,13 @@ th
               <table>
               <tr>
                 <td>
-                 <ul style="border:1px solid #ccc !important;width:360px !important; height:39px;margin-top:10px;" style="" id="job_title_ul"></ul>                
-                </td>
-                <td>
                   
                 <input id="search_name" name="search_name" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Name" style="margin-left:6px;height:40px; width:160px;">
                 </td>
+                <td>
+                 <ul style="border:1px solid #ccc !important;width:360px !important; height:39px;margin-top:10px;" style="" id="job_title_ul"></ul>                
+                </td>
+               
                 <td>
 <!--                 <input id="search_job_title" name="search_job_title" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Job Title" style="height:40px; width:150px;">
  -->

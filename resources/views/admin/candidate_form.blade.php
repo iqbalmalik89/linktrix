@@ -7,6 +7,7 @@
   @include('admin.partials.asset')
 <script src="admin_asset/js/modules/candidate.js"></script>
 <style type="text/css">
+
   .control-label
   {
     font-weight: 500 !important;
@@ -101,7 +102,7 @@ window.onbeforeunload = function(e) {
 
                   <label class="col-sm-1 control-label">Consultant</label>
                   <div class="col-sm-2">
-                  <select id="consultant_id">
+                  <select class="selectpicker" data-live-search="true" id="consultant_id">
                   </select>
                   </div>
 
@@ -396,7 +397,7 @@ window.onbeforeunload = function(e) {
 
 
   $( document ).ready(function() {
-    getConsultant();
+    getConsultant('');
     <?php if(!empty($_GET['candidate_id'])){ ?>
       getCandidate("<?php echo $_GET['candidate_id']; ?>");
     <?php } else {?>

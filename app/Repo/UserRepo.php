@@ -1,5 +1,6 @@
 <?php namespace App\Repo;
 use App\Models\User as User;
+use App\Models\Candidate as Candidate;
 use App\Models\SupervisorConsultant as SupervisorConsultant;
 class UserRepo
 {
@@ -30,6 +31,28 @@ class UserRepo
 			}
 		}
 		return $resp;		
+	}
+
+	public function allUsers($candidateId)
+	{
+		$allUsers = array('users' => array(), 'creater_id' => '');
+		if(!empty($candidateId))
+		{
+			$candidate = Candidate::find($candidateId);
+			
+			if(!empty($candidate))
+				$allUsers['creater_id'] = $candidate->creator_id;
+		}
+
+
+		$users = User::where('status', 1)->get()->toArray();
+		if(!empty($users))
+		{
+			foreach ($users as $key => $user) {
+				$allUsers['users'][] = array('id' => $user['id'], 'name' => $user['name'], 'role_id' => $user['role_id']);
+			}
+		}
+		return $allUsers;
 	}
 
 	public function changeStatus($userId, $status)
