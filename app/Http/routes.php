@@ -85,7 +85,9 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->post('change_creator', 'App\Http\Controllers\CandidateController@changeCreator');
 	$app->post('undelete_candidate', 'App\Http\Controllers\CandidateController@undeleteCandidate');
 	$app->post('undelete_request', 'App\Http\Controllers\CandidateController@undeleteRequest');
-
+	$app->post('sharing_save', 'App\Http\Controllers\CandidateController@saveShare');
+	$app->post('sec_info_sharing', 'App\Http\Controllers\CandidateController@secInfoShare');
+	$app->post('primary_sharing', 'App\Http\Controllers\CandidateController@savePrimarySharing');
 
 
 	$app->post('cv_upload', 'App\Http\Controllers\CandidateController@cvUpload');

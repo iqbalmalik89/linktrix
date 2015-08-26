@@ -128,6 +128,81 @@ class CandidateController extends BaseController
 		}
  	}
 
+ 	public function savePrimarySharing()
+ 	{
+ 		$candidateId = base64_decode(\Request::input('candidate_id'));
+ 		$dataType = \Request::input('data_type');
+
+		$user = \Session::get('user'); 			
+		$userId = $user['id'];
+		$data = $this->repo->savePrimarySharing($userId, $candidateId, $dataType);
+		if($data)
+		{
+			return response()->json(array('status' => 'success'));
+		}
+		else
+		{
+			return response()->json(array('status' => 'error'));
+		}
+ 	}
+
+ 	public function secInfoShare()
+ 	{
+ 		$candidateId = base64_decode(\Request::input('candidate_id'));
+ 		$sharingId = \Request::input('sharing_id');
+
+ 		if(!empty($consultantId))
+ 			$userId = $consultantId;
+ 		else
+ 		{
+			$user = \Session::get('user'); 			
+ 			$userId = $user['id'];
+ 		}
+
+ 		if(!empty($candidateId))
+ 		{
+			$data = $this->repo->addSharingAccess($userId, $sharingId);
+
+			return response()->json(array('status' => 'success'));
+ 		}
+ 		else
+ 		{
+			return response()->json(array('status' => 'error')); 			
+ 		}
+ 	}
+
+ 	public function saveShare()
+ 	{
+ 		$candidateId = base64_decode(\Request::input('candidate_id'));
+ 		$phone = \Request::input('phone'); 		
+ 		$cvPath = \Request::input('cv_path'); 		 		
+ 		$type = \Request::input('type');
+ 		$consultantId = \Request::input('consultant_id');
+
+ 		if($type == 'phone')
+ 			$value = $phone;
+ 		else
+ 			$value = $cvPath;
+ 		if(!empty($consultantId))
+ 			$userId = $consultantId;
+ 		else
+ 		{
+			$user = \Session::get('user'); 			
+ 			$userId = $user['id'];
+ 		}
+
+ 		if(!empty($candidateId))
+ 		{
+			$data = $this->repo->addCandidateShare($userId, $candidateId, $value, $type);
+
+			return response()->json(array('status' => 'success'));
+ 		}
+ 		else
+ 		{
+			return response()->json(array('status' => 'errir')); 			
+ 		}
+ 	}
+
  	public function addCandidateOwner()
  	{
  		$candidateId = base64_decode(\Request::input('candidate_id'));
@@ -158,7 +233,8 @@ class CandidateController extends BaseController
 
 		if($accessCheck == 'yes')
 		{
-			if(!$data['is_owner'] &&  empty($data['candidate_sharing']))
+//			if(!$data['is_owner'] &&  empty($data['candidate_sharing']))
+			if(!$data['is_owner'])
 			{
 				if(!empty($data['email']))
 					$data['email'] = 'Restricted';
@@ -170,13 +246,23 @@ class CandidateController extends BaseController
 				else
 					$data['home_number'] = '';
 	
-				if(!empty($data['phone']))	
-					$data['phone'] = 'Restricted';
-				else	
+				if(!empty($data['phone']))
+				{
+					if($data['phone_access'])	
+						$data['phone'] = $data['phone'];
+					else
+						$data['phone'] = \Utility::mask($data['phone']);
+				}
+				else
 					$data['phone'] = '';
 
 				if(!empty($data['cv_url']))
-					$data['cv_url'] = 'Restricted';				
+				{
+					if($data['cv_access'])	
+						$data['cv_url'] = $data['cv_url'];
+					else
+						$data['cv_url'] = '';
+				}
 				else
 					$data['cv_url'] = '';
 			}
@@ -236,7 +322,7 @@ class CandidateController extends BaseController
     	$encodedCandidateId = \Request::get('candidate_id');
     	$candidateId = base64_decode($encodedCandidateId);
     	$resp = $this->repo->checkDuplicateCheck($candidateId, $email);
-
+    	
     	if($resp['code'] === 0)
     	{
 			$data = array('status' => 'error', 'message' => 'A candidate already exists with this email.');
@@ -251,12 +337,12 @@ class CandidateController extends BaseController
 		}		
 		else
 		{
-			unset($resp['phone']);
-			unset($resp['old_phone']);			
-			unset($resp['home_number']);			
-			unset($resp['cv_path']);			
-			unset($resp['old_cv_path']);			
-			unset($resp['cv_url']);			
+			// unset($resp['phone']);
+			// unset($resp['old_phone']);			
+			// unset($resp['home_number']);			
+			// unset($resp['cv_path']);			
+			// unset($resp['old_cv_path']);			
+			// unset($resp['cv_url']);			
 
 			$data = array('status' => 'duplicate', 'message' => 'Do you want to share the information?', 'data' => $resp);
 		}

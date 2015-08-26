@@ -1,9 +1,9 @@
 <div class="modal fade" id="candidate_detail" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog" style="width:60%;">
+    <div class="modal-dialog" style="width:65%;">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title"><span id="lbl_candidateName"></span> <a onclick="unlockProfile();" href="javascript:void(0);" id="lbl_unlock_btn" style="display:none;" class="btn btn-primary"> Share Profile </a> 
+                <h4 class="modal-title"><span id="lbl_candidateName"></span> <a onclick="unlockProfile();" href="javascript:void(0);" id="lbl_unlock_btn" style="display:none;" class="btn btn-primary"> Unlock Profile </a> 
               <img src="shared_images/spinner.gif" style="display:none;" id="lbl_unlock_spinner">
 
                 </h4>
@@ -46,7 +46,15 @@
                     <th>Postal Code</th>
                     <td id="lbl_postal_code"></td>                          
                     <th>Tel</th>
-                    <td id="lbl_phone"></td>                                                    
+
+                    <td style="width:292px;">
+                      <table id="phone_sharing">
+
+                      </table>
+                    </td>
+<!--                     <td id="lbl_phone"></td>                                                     -->
+
+
                   </tr>
 
                   <tr class="txtcolor">
@@ -93,7 +101,12 @@
                   </tr>
                   <tr>
                     <th>CV</th>
-                    <td colspan="3" id="lbl_cv"></td>
+<!--                     <td colspan="3" id="lbl_cv"></td> -->
+                    <td colspan="3">
+                      <table id="cv_sharing">
+
+                      </table>
+                    </td>
                     <td>
 
                   <tr class="txtcolor">

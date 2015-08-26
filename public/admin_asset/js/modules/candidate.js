@@ -552,6 +552,110 @@ function previewCv(url)
 
 }
 
+function showAddPhone()
+{
+  var add_phone_btn = $('#add_phone_btn').text();
+  if(add_phone_btn == 'Add Phone'){
+    $('#sharing_phone_number, #sharing_phone_save').fadeIn();
+    $('#add_phone_btn').text('Cancel')
+  }
+  else
+  {
+    $('#sharing_phone_number, #sharing_phone_save').hide();
+    $('#add_phone_btn').text('Add Phone')
+
+  }
+}
+
+
+function shareSecInfo(id, type)
+{
+  var candidateId = $('#candidate_id').val();
+  $.ajax({
+      type: 'POST',
+      dataType:"JSON",
+      url: apiUrl + 'sec_info_sharing',
+      data: {candidate_id: candidateId, sharing_id: id, type:type},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        if(data.status == 'success')
+        {
+          getCandidateDetail(candidateId);
+          if(type == 'phone')
+            showMsg('#candidate_msg', 'Phone number shared successfully', 'green');
+          else
+            showMsg('#candidate_msg', 'CV shared successfully', 'green');            
+        }
+
+      },
+      error:function(){
+
+      }
+  });      
+}
+
+function sharePrimaryInfo(candidateId, dataType)
+{
+  $.ajax({
+      type: 'POST',
+      dataType:"JSON",
+      url: apiUrl + 'primary_sharing',
+      data: {candidate_id: candidateId, data_type: dataType},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        if(data.status == 'success')
+        {
+          getCandidateDetail(candidateId);
+          showMsg('#candidate_msg', 'Phone number saved successfully', 'green');                      
+        }
+
+      },
+      error:function(){
+
+      }
+  });      
+}
+
+function saveSharing(type)
+{
+  var candidateId = $('#candidate_id').val();
+  var cvPath = $('#cv_path').val();  
+  var sharingPhoneNumber = $.trim($('#sharing_phone_number').val());
+  $('#sharing_phone_number').removeClass('error-class');
+
+    $.ajax({
+        type: 'POST',
+        dataType:"JSON",
+        url: apiUrl + 'sharing_save',
+        data: {candidate_id: candidateId, phone: sharingPhoneNumber, type:type, cv_path:cvPath},
+        beforeSend:function(){
+
+        },
+        success:function(data){
+
+          if(data.status == 'success')
+          {
+            getCandidateDetail(candidateId);
+            if(type == 'phone')
+             showMsg('#candidate_msg', 'Phone number saved successfully', 'green');                      
+            if(type == 'cv')
+             showMsg('#candidate_msg', 'CV uploaded successfully', 'green');                                 
+          }
+
+        },
+        error:function(){
+
+        }
+    });
+}
+
+
 function getCandidateDetail(candidateId)
 {
   $('#candidate_id').val(candidateId);
@@ -579,7 +683,6 @@ function getCandidateDetail(candidateId)
         $('#lbl_creater_image').html('<img style="width:50px;height:50px;" class="img-circle" src="'+data.data.owner_image+'">');        
         $('#lbl_first_name').html(data.data.first_name);
         $('#lbl_last_name').html(data.data.last_name);
-        $('#lbl_last_name').html(data.data.last_name);
         $('#lbl_address').html(data.data.address);
         if(data.data.postal_code == 0)
           $('#lbl_postal_code').html('');
@@ -591,24 +694,129 @@ function getCandidateDetail(candidateId)
         else
           $('#lbl_date_of_birth').html(getFormatDate(data.data.date_of_birth));
 
-        if(data.data.is_owner || data.data.candidate_sharing)
+        var sharingPhones = 0;
+        var sharingCv = 0;    
+        var sharingCvHtml = '';
+        var sharingPhoneHtml = '';
+        var sharePhone = '';
+        var shareCv = '';
+
+        if(data.data.phone != '')
+        {
+          if(data.data.phone_access)
+          {
+            sharePhone = '';
+          }
+          else
+          {
+            sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'phone\');" href="javascript:void(0);">Share</a>';
+          }
+
+          sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td>' + data.data.phone + sharePhone + ' </td></tr>';
+        }
+
+        if(data.data.cv_path != '')
+        {
+          if(data.data.cv_access)
+          {
+            shareCv = '';
+          }
+          else
+          {
+            shareCv = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'cv\');" href="javascript:void(0);">Share</a>';
+          }
+
+          if(data.data.cv_url == 'Restricted' || data.data.cv_url == '')
+          {
+            sharingCvHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td> ' + shareCv + ' </td></tr>';
+          }
+          else
+          {
+            sharingCvHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td>' + '<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at) +' </td></tr>';
+          }
+
+        }
+
+
+        $(data.data.candidate_sharing).each(function(index, candidate_share) {
+          if(candidate_share != '')
+          {
+            if(candidate_share.field_type == 'phone')
+            {
+              if(candidate_share.owner == '0')
+                sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="shareSecInfo('+candidate_share.id+', \'phone\');" href="javascript:void(0);">Share</a>';
+              else
+                sharePhone = '';
+
+              sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ candidate_share.user_name +'</td><td>' +candidate_share.data_field +  sharePhone + ' </td></tr>';
+              sharingPhones++;
+
+            }
+
+
+            if(candidate_share.field_type == 'cv')
+            {
+              if(candidate_share.owner == '0')
+                shareCv = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="shareSecInfo(\''+ candidate_share.id +'\', \'cv\');" href="javascript:void(0);">Share</a>';
+              else
+                shareCv = '<a target="_blank" href="https://docs.google.com/viewer?url='+candidate_share.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+candidate_share.cv_url+'"><i class="fa fa-save"></i> Download </a> ';
+
+              sharingCvHtml += '<tr><td style="color:#000;width:100px;">'+ candidate_share.user_name +'</td><td>'  +  shareCv + ' </td></tr>';
+              sharingCv++;
+
+            }            
+          }
+        });
+
+        if(data.data.is_owner)
         {
           $('#lbl_home_number').html(data.data.home_number);
           $('#lbl_email').html(data.data.email);
           $('#lbl_phone').html(data.data.phone);
-          if(data.data.cv_url != '')
-            $('#lbl_cv').html('<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
+          // if(data.data.cv_url != '')
+          //   $('#lbl_cv').html('<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
           $('#lbl_unlock_btn').hide();          
         }
         else
         {
+          // show add phone number
+          if(sharingPhones < 2 && data.data.is_owner === false)
+          {
+            sharingPhoneHtml += '<tr><td colspan="2"><input type="text" style="display:none;" id="sharing_phone_number"><a style="display:none;" id="sharing_phone_save" href="javascript:void(0);" class="btn btn-primary" onclick="saveSharing(\'phone\');">Save</a>  <a onclick="showAddPhone();" id="add_phone_btn" href="javascript:void(0);">Add Phone</a></td></tr>';
+          }
+
+          // show add phone number
+          if(sharingCv < 1 && data.data.is_owner === false)
+          {
+            sharingCvHtml += '<tr><td colspan="2"><input type="file" id="cv" name="cv" data-url="api/cv_upload" class="file-pos"><span id="cv_name"></span>\
+                  <input type="hidden" value="" id="cv_path"><a style="display:block;width:100px;" id="sharing_cv_save" href="javascript:void(0);" class="btn btn-primary" onclick="saveSharing(\'cv\');">Save</a></td></tr>';
+          }
+
+          $('#lbl_unlock_btn').show();
+
           $('#lbl_unlock_btn').show();
           var accesshtml = ''; //Restricted
           $('#lbl_email').html(data.data.email);
           $('#lbl_phone').html(data.data.phone);
-          $('#lbl_cv').html(data.data.cv_url);  
+          $('#lbl_cv').html(data.data.cv_url);
           $('#lbl_home_number').html(data.data.home_number);
         }
+
+        $('#phone_sharing').html(sharingPhoneHtml);
+        $('#cv_sharing').html(sharingCvHtml);
+
+        // initialize loader
+        $('#cv').fileupload({
+          dataType: 'json',
+          done: function (e, data) {
+            $('#cv_path').val(data.result.file_name);
+            $('#cv').hide();
+            $('#cv_name').show().html('<a target="_blank" href="api/cv_download?cv_path='+data.result.file_name+'">'+data.result.real_file_name+'</a>');
+//            $('#removeCv').show();
+          }
+        });        
+
+
 
         $('#lbl_nric').html(data.data.nric);
         $('#lbl_citizen').html(data.data.citizen);

@@ -54,6 +54,33 @@ class Utility
         return $races;
     }
 
+    public static function mask($str, $maskCharacter = '*')
+    {
+        if(!empty($str))
+        {
+            $totalLen = strlen($str);
+            if($totalLen > 4)
+            {
+                $subStr = substr($str, -4);
+                $stars = '';
+                $totalStartLen = $totalLen - 4;
+                for($i = 0; $i < $totalStartLen; $i++)
+                {
+                    $stars .= $maskCharacter;
+                }
+                return $stars.$subStr;
+            }
+            else
+            {
+                return $str;
+            }
+        }
+        else
+        {
+            return $str;
+        }
+    }
+
     public static function paginator($data, $paginate)
     {
         $data['pagination'] = array();

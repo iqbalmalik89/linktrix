@@ -3,6 +3,9 @@ use App\Models\CandidateCompany as CandidateCompany;
 use App\Models\Candidate as Candidate;
 use App\Models\UserCandidate as UserCandidate;
 use App\Models\CandidateShare as CandidateShare;
+use App\Models\CandidateShareAccess as CandidateShareAccess;
+use App\Models\PrimaryAccess as PrimaryAccess;
+
 
 use Goodby\CSV\Import\Standard\Lexer;
 use Goodby\CSV\Import\Standard\Interpreter;
@@ -47,6 +50,12 @@ class CandidateRepo
     	{
     		return false;
     	}
+    }
+
+    public function getSharingAccess($userId, $sharingId)
+    {
+    	$count = CandidateShareAccess::where('user_id' , $userId)->where('sharing_id', $sharingId)->count();
+    	return $count;
     }
 
 	public function getCandidateOwner($candidateId, $roleId)
@@ -141,13 +150,152 @@ class CandidateRepo
 		return $resp;
 	}
 
-	public function addCandidateShare($userId, $candidateId)
+	public function getCandidateShares($candidateId, $isOwner)
 	{
-		$candidateShareExists = $this->candidateShareExists($userId, $candidateId);
-		if(empty($candidateShareExists))
+		$candidateShareArr = array();
+		$candidateShares = CandidateShare::where('candidate_id', $candidateId)->get()->toArray();
+		if(!empty($candidateShares))
 		{
+			foreach ($candidateShares as $key => $candidateShare) {
+				$candidateShareArr[] = $this->getCandidateShare($candidateShare['id'], $isOwner);
+			}
+		}
+
+		return $candidateShareArr;
+	}
+
+	public function addSharingAccess($userId, $sharingId)
+	{
+		$getSharingData = CandidateShare::find($sharingId);
+
+		if(!empty($getSharingData))
+		{
+			$candidateRec = $this->get(base64_encode($getSharingData->candidate_id), true);
+			if(!empty($candidateRec))
+			{
+				if(!empty($candidateRec->creator_id))
+				{
+					$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
+					$this->sendUnlockEmail($candidateRec->id, $getSharingData->user_id, $candidateName);
+				}
+			}
+
+			$candidateSharing = new CandidateShareAccess();
+			$candidateSharing->user_id = $userId;
+			$candidateSharing->sharing_id = $sharingId;
+			$candidateSharing->save();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+
+	}
+
+	public function checkPrimaryAccess($userId, $candidateId, $dataType)
+	{
+		$access = PrimaryAccess::where('user_id', $userId)->where('candidate_id', $candidateId)->where('data_type', $dataType)->count();
+		return $access;
+	}
+
+	public function savePrimarySharing($userId, $candidateId, $dataType)
+	{
+		$candidateRec = $this->get(base64_encode($candidateId), true);
+		if(!empty($candidateRec))
+		{
+			$access = new PrimaryAccess();
+			$access->user_id = $userId;
+			$access->candidate_id = $candidateId;
+			$access->data_type = $dataType;
+			$access->save();
+
+			if(!empty($candidateRec->creator_id))
+			{
+				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
+				$this->sendUnlockEmail($candidateRec->id, $candidateRec->creator_id, $candidateName);
+			}
+
+			return true;
+		}
+		else
+		{
+			return false;		
+		}
+	}
+
+	public function getCandidateShare($id, $isOwner)
+	{
+		$user = \Session::get('user');
+		$sharingAccess = $this->getSharingAccess($user['id'], $id);
+		$candidateShare = CandidateShare::find($id);
+		if(!empty($candidateShare))
+		{
+			$userData = $this->userRepo->get($candidateShare->user_id);
+			if($user['id'] == $candidateShare->user_id || $isOwner || $sharingAccess)
+				$owner = '1';
+			else
+				$owner = '0';
+
+			if($owner)
+			{
+				$field = $candidateShare->data_field;
+			}
+			else
+			{
+				if($candidateShare->field_type == 'phone')
+					$field = \Utility::mask($candidateShare->data_field);
+				else
+					$field = '';					
+			}
+
+			$cvUrl = '';
+
+			if($candidateShare->field_type == 'cv' && !empty($field))
+			{
+				$cvUrl = \Utility::getUrl('app/cv').$candidateShare->data_field;
+			}
+
+
+
+
+			$arr = array('id' => $candidateShare->id, 
+						 'candidate_id' => $candidateShare->candidate_id, 
+						 'user_id' => $candidateShare->user_id,
+						 'user_name' => $userData['name'],
+						 'data_field' => $field,
+						 'cv_url' => $cvUrl,						 
+						 'field_type' => $candidateShare->field_type,
+						 'owner' => $owner
+						 );
+			return $arr;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function addCandidateShare($userId, $candidateId, $fieldVaue, $type)
+	{
+		// $candidateShareExists = $this->candidateShareExists($userId, $candidateId);
+		// if(empty($candidateShareExists))
+		// {
+
+		$candidateRec = $this->get(base64_encode($candidateId), true);
+		if(!empty($candidateRec))
+		{
+
+			if(!empty($candidateRec->creator_id))
+			{
+				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
+				$this->sendUnlockEmail($candidateRec->id, $candidateRec->creator_id, $candidateName, true);
+			}
+
 			$date = date('Y-m-d H:i:s');
 			$newcandidateShare = new CandidateShare();
+			$newcandidateShare->data_field = $fieldVaue;
+			$newcandidateShare->field_type = $type;			
 			$newcandidateShare->user_id = $userId;
 			$newcandidateShare->candidate_id = $candidateId;
 			$newcandidateShare->date_created = $date;
@@ -158,6 +306,11 @@ class CandidateRepo
 		{
 			return false;
 		}
+		// }
+		// else
+		// {
+		// 	return false;
+		// }
 	}
 
 	public function candidateShareExists($userId, $candidateId)
@@ -201,7 +354,7 @@ class CandidateRepo
 		return 'LT-A'.$alphabet.str_pad($newId, 5, 0, STR_PAD_LEFT);
 	}
 
-	public function sendUnlockEmail($candidateId, $creatorId, $candidateName)
+	public function sendUnlockEmail($candidateId, $creatorId, $candidateName, $addInfo = false)
 	{
 		$userData = $this->userRepo->get($creatorId);
 		if(!empty($userData))
@@ -212,11 +365,21 @@ class CandidateRepo
 			$user = \Session::get('user');
 			$accessorName = $user['name'];
 
+			if($addInfo)
+			{
+				$subject = 'Candidate Information added';
+				$txt = '<html><body>Hello, '.$userData['name'].'<br>
+						User '.$accessorName.' added information of candidate '.$candidateLinktrixId.':'.$candidateName.'
+				</body></html>';
+			}
+			else
+			{
+				$subject = 'Candidate Accessed';
+				$txt = '<html><body>Hello, '.$userData['name'].'<br>
+						User '.$accessorName.' accessing candidate '.$candidateLinktrixId.':'.$candidateName.'
+				</body></html>';				
+			}
 
-			$subject = 'Candidate Accessed';
-			$txt = '<html><body>Hello, '.$userData['name'].'<br>
-					User '.$accessorName.' accessing candidate '.$candidateLinktrixId.':'.$candidateName.'
-			</body></html>';
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: jasonbourne501@gmail.com";
@@ -276,8 +439,8 @@ class CandidateRepo
 				{
 					$candidateId = base64_encode($candidateRec->id);
 					$candidateData =  $this->get($candidateId);
-					return $candidateData;
-				}				
+					return array('code' => 10, 'id' => base64_encode($candidateRec->id));
+				}
 			}
 			else
 			{
@@ -1046,9 +1209,8 @@ class CandidateRepo
 	            if(!$candidateData['is_owner'])
 	            {
 	            	$candidateData['email'] = 'Restricted'; // restricted
-	            	$candidateData['phone'] = '';	            	
+	            	$candidateData['phone'] = 'Restricted';	            	
 	            }
-
 
 	            $data['data'][] = $candidateData;
 	        }
@@ -1110,19 +1272,21 @@ class CandidateRepo
 				else
 					$candidateData['cv_url'] = '';
 
-				if(!empty($candidateShareExists))
-				{
-					$candidateData['candidate_sharing'] = 1;
-				}
-				else
-				{
-					$candidateData['candidate_sharing'] = 0;
-				}
+				$role = $this->getUserRole();
+				$candidateData['is_owner'] = $this->isOwner($id, $role);
+
+				$candidateData['candidate_sharing'] = $this->getCandidateShares($id, $candidateData['is_owner']);
 
 				$candidateData['remarks'] = nl2br($candidateData['remarks']);
 
-				$role = $this->getUserRole();
-				$candidateData['is_owner'] = $this->isOwner($id, $role);
+				if(!$candidateData['is_owner']){
+					$candidateData['phone_access'] = $this->checkPrimaryAccess($currentUserId, $id, 'phone');
+					$candidateData['cv_access'] = $this->checkPrimaryAccess($currentUserId, $id, 'cv');
+				}
+				else{
+					$candidateData['phone_access'] = 1;
+					$candidateData['cv_access'] = 1;					
+				}
 
 				if(empty($candidateData['cv_path']))
 					$candidateData['cv_path'] = '';
@@ -1256,6 +1420,11 @@ class CandidateRepo
 		{
 			return false;
 		}
+	}
+
+	public function savePhoneShare($candidateId, $phone, $userId)
+	{
+
 	}
 
 	public function getUserRole()
