@@ -74,11 +74,13 @@ function UndeleteRequest(candidate_id)
 function checkDuplicateCheck(email)
 {
   var candidateId = $('#candidate_id').val();
+  var consultantId = $('#consultant_id').val();
+
     $.ajax({
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'check_duplicate_check',
-      data: {email:email, candidate_id:candidateId},
+      data: {email:email, candidate_id:candidateId, consultant_id:consultantId},
       beforeSend:function(){
 
       },
@@ -88,6 +90,10 @@ function checkDuplicateCheck(email)
         {
 
         }
+        else if(data.status == 'same_owner')
+        {
+          showMsg('#candidate_msg', 'This user already own the candidate.', 'red');
+        }        
         else if(data.status == 'deleted')
         {
           $('#undelete_request').modal('show');  
@@ -503,6 +509,8 @@ function resetSearch()
   $('#reset').fadeOut('fast');
   $('#search_count, #sort_span').html('');
   $('.search_term, #tags_field, #search_job_title').val('');
+  $('#search_consultant_id').val("");
+  $('#search_consultant_id').selectpicker('refresh');
   $("#tags_ul, #job_title_ul").tagit("removeAll");  
   getCandidates(1);
 }
@@ -510,32 +518,43 @@ function resetSearch()
 function unlockProfile()
 {
   var candidateId = $('#candidate_id').val();
+  var consultantId = $('#consultant_id').val();
+
   $('#unlock_spinner').show();
   $('#unlock_btn').hide();
   $.ajax({
       type: 'post',
       dataType:"JSON",
       url: apiUrl + 'unlock_candidate',
-      data: {candidate_id: candidateId},
+      data: {candidate_id: candidateId, consultant_id:consultantId},
       beforeSend:function(){
 
       },
       success:function(data){
       $('#unlock_spinner').hide()
 
-        if(data.email != '')
+        if(data.status == 'success')
         {
-          $('#lbl_phone').html(data.phone);
-          $('#lbl_email').html(data.email);
-          $('#lbl_home_number').html(data.home_number);
-          if(data.cv_url != '')
-            $('#lbl_cv').html('<a target="_blank" style="text-decoration:underline;" href="'+data.cv_url+'"><i  style="text-decoration:underline;"class="fa fa-save"></i> Download CV</a> ' + ' Updated At:' + getFormatDate(data.cv_updated_at));
-          else
-            $('#lbl_cv').html('');
-
-          showMsg('#lbl_unlock_msg', 'An email is sent to the origional owner.', 'green');
-          $('#lbl_unlock_btn').hide();
+          if(data.data.email != '')
+          {
+            // var sharing
+            // $('#lbl_phone').html(data.data.phone);
+            // $('#lbl_email').html(data.data.email);
+            // $('#lbl_home_number').html(data.data.home_number);
+            // if(data.data.cv_url != '')
+            //   $('#lbl_cv').html('<a target="_blank" style="text-decoration:underline;" href="'+data.data.cv_url+'"><i  style="text-decoration:underline;"class="fa fa-save"></i> Download CV</a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at));
+            // else
+            //   $('#lbl_cv').html('');
+            getCandidateDetail(candidateId, 'no');
+            showMsg('#lbl_unlock_msg', 'An email is sent to the origional owner.', 'green');
+            $('#lbl_unlock_btn').hide();
+          }          
         }
+        else
+        {
+            showMsg('#lbl_unlock_msg', 'The selected user si the owner of this candidate..', 'red');          
+        }
+
 
       },
       error:function(){
@@ -567,15 +586,24 @@ function showAddPhone()
   }
 }
 
+$('#candidate_detail').on('hidden.bs.modal', function() { 
+  console.log('s')
+});
+
+function clearUnlockPopup()
+{
+  $('#candidate_id').val('');
+}
 
 function shareSecInfo(id, type)
 {
   var candidateId = $('#candidate_id').val();
+  var consultantId = $('#consultant_id').val();  
   $.ajax({
       type: 'POST',
       dataType:"JSON",
       url: apiUrl + 'sec_info_sharing',
-      data: {candidate_id: candidateId, sharing_id: id, type:type},
+      data: {candidate_id: candidateId, sharing_id: id, type:type, consultant_id:consultantId},
       beforeSend:function(){
 
       },
@@ -599,11 +627,12 @@ function shareSecInfo(id, type)
 
 function sharePrimaryInfo(candidateId, dataType)
 {
+  var consultantId = $('#consultant_id').val();
   $.ajax({
       type: 'POST',
       dataType:"JSON",
       url: apiUrl + 'primary_sharing',
-      data: {candidate_id: candidateId, data_type: dataType},
+      data: {candidate_id: candidateId, data_type: dataType, consultant_id:consultantId},
       beforeSend:function(){
 
       },
@@ -625,6 +654,7 @@ function sharePrimaryInfo(candidateId, dataType)
 function saveSharing(type)
 {
   var candidateId = $('#candidate_id').val();
+  var consultantId = $('#consultant_id').val();  
   var cvPath = $('#cv_path').val();  
   var sharingPhoneNumber = $.trim($('#sharing_phone_number').val());
   $('#sharing_phone_number').removeClass('error-class');
@@ -633,7 +663,7 @@ function saveSharing(type)
         type: 'POST',
         dataType:"JSON",
         url: apiUrl + 'sharing_save',
-        data: {candidate_id: candidateId, phone: sharingPhoneNumber, type:type, cv_path:cvPath},
+        data: {candidate_id: candidateId, phone: sharingPhoneNumber, type:type, cv_path:cvPath, consultant_id:consultantId},
         beforeSend:function(){
 
         },
@@ -656,9 +686,13 @@ function saveSharing(type)
 }
 
 
-function getCandidateDetail(candidateId)
+function getCandidateDetail(candidateId, access)
 {
+  access = typeof access !== 'undefined' ? access : 'yes';
+  $('#email_submit').hide();
   $('#candidate_id').val(candidateId);
+  var consultantId = $('#consultant_id').val();
+
   $('#unlock_btn').hide();
   if(candidateId != '')
   {
@@ -666,7 +700,7 @@ function getCandidateDetail(candidateId)
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'candidate',
-      data: {candidate_id: candidateId, access_check : "yes"},
+      data: {candidate_id: candidateId, access_check : access, consultant_id:consultantId},
       beforeSend:function(){
 
       },
@@ -709,7 +743,7 @@ function getCandidateDetail(candidateId)
           }
           else
           {
-            sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'phone\');" href="javascript:void(0);">Share</a>';
+            sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'phone\');" href="javascript:void(0);">Share</a>';
           }
 
           sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td>' + data.data.phone + sharePhone + ' </td></tr>';
@@ -723,7 +757,7 @@ function getCandidateDetail(candidateId)
           }
           else
           {
-            shareCv = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'cv\');" href="javascript:void(0);">Share</a>';
+            shareCv = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'cv\');" href="javascript:void(0);">Share</a>';
           }
 
           if(data.data.cv_url == 'Restricted' || data.data.cv_url == '')
@@ -734,9 +768,13 @@ function getCandidateDetail(candidateId)
           {
             sharingCvHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td>' + '<a target="_blank" href="https://docs.google.com/viewer?url='+data.data.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+data.data.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + ' Updated At:' + getFormatDate(data.data.cv_updated_at) +' </td></tr>';
           }
-
         }
 
+        if(!data.data.email_access)
+        {
+          $('#email_submit').show();
+          $('#email_submit').attr('onclick', 'sharePrimaryInfo(\''+ candidateId +'\', \'email\');');
+        }
 
         $(data.data.candidate_sharing).each(function(index, candidate_share) {
           if(candidate_share != '')
@@ -744,7 +782,7 @@ function getCandidateDetail(candidateId)
             if(candidate_share.field_type == 'phone')
             {
               if(candidate_share.owner == '0')
-                sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="shareSecInfo('+candidate_share.id+', \'phone\');" href="javascript:void(0);">Share</a>';
+                sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="shareSecInfo('+candidate_share.id+', \'phone\');" href="javascript:void(0);">Share</a>';
               else
                 sharePhone = '';
 
@@ -757,7 +795,7 @@ function getCandidateDetail(candidateId)
             if(candidate_share.field_type == 'cv')
             {
               if(candidate_share.owner == '0')
-                shareCv = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="shareSecInfo(\''+ candidate_share.id +'\', \'cv\');" href="javascript:void(0);">Share</a>';
+                shareCv = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="shareSecInfo(\''+ candidate_share.id +'\', \'cv\');" href="javascript:void(0);">Share</a>';
               else
                 shareCv = '<a target="_blank" href="https://docs.google.com/viewer?url='+candidate_share.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+candidate_share.cv_url+'"><i class="fa fa-save"></i> Download </a> ';
 
@@ -909,12 +947,14 @@ function getCandidates(page)
   var searchMode = $('input[name="search_mode"]:checked').val();
 
   $('#search_count').html('');
+
+  var searchConsultantId = $.trim($('#search_consultant_id').val());
   var searchName = $.trim($('#search_name').val());
   var searchJobTitle = $.trim($('#search_job_title').val());
   var searchTags = $.trim($('#tags_field').val());
   var search = false;
 
-  if(searchName != '' || searchJobTitle != '' || searchTags != '')
+  if(searchName != '' || searchJobTitle != '' || searchTags != '' || searchConsultantId != '')
     var search = true;
 
   var orderBy = $.trim($('#order_by').val());  
@@ -924,7 +964,7 @@ function getCandidates(page)
     $.ajax({
       type: 'get',
       url: apiUrl + 'candidates',
-      data: {search_mode:searchMode,  limit: limit, page:page, search_name:searchName, search_job_title :searchJobTitle, search_tags: searchTags, sort_order:sortOrder, order_by:orderBy},
+      data: {search_mode:searchMode,  limit: limit, page:page, search_name:searchName, search_job_title :searchJobTitle, search_tags: searchTags, sort_order:sortOrder, order_by:orderBy, search_consultant_id:searchConsultantId},
       dataType:"JSON", 
       beforeSend:function(){
 
@@ -1087,6 +1127,9 @@ function getCandidate(candidateId)
       success:function(data){
         cvUpdateAt = '';
         $('#candidate_id').val(data.data.id);
+        $('#consultant_id').val(data.data.creator_id);        
+//        $('#consultant_id').selectpicker('refresh');
+        getConsultant(data.data.id);
         $('#first_name').val(data.data.first_name);
         $('#last_name').val(data.data.last_name);
         $('#last_name').val(data.data.last_name);
@@ -1275,10 +1318,11 @@ function getConsultant(candidateId)
           assistanthtml = '<optgroup label="Assistant">' + assistanthtml + '</optgroup>';
 
         html += adminhtml + supervisorhtml + consultanthtml + assistanthtml;
-        $('#consultant_id').html(html);
+
+        $('#consultant_id, #search_consultant_id').html(html);
 
 
-        $('#consultant_id').selectpicker('refresh');
+        $('#consultant_id, #search_consultant_id').selectpicker('refresh');
       },
       error:function(){
 

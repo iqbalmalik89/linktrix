@@ -299,6 +299,7 @@ function getAllTypeUsers()
 
 function deleteUser(userId)
 {
+  $('#candidate_exists_popup_body').html('');
   if(userId > 0)
   {
     $.ajax({
@@ -314,6 +315,26 @@ function deleteUser(userId)
         {
           showMsg('#user_msg', data.message, 'green');
           getAllTypeUsers();
+        }
+        else if(data.status == 'candidate_exists')
+        {
+          var candidatesHtml = '';
+          if(data.data.length > 0)
+          {
+            candidatesHtml = '<table class="table table-hover" style="height:300px !important;"><tr><th>Linktrix ID</th><th>Name</th></tr>'
+            $(data.data).each(function(index, candidate) {
+              candidatesHtml += '<tr><td><span class="badge" style="background-color:#263248;"> ' + (index + 1) + ' </span> '+candidate.linktrix_id+'</td><td>'+candidate.name+'</td></tr>';
+            });
+            candidatesHtml += '</table>';
+          }
+
+          if(candidatesHtml!= '')
+          {
+            $('#candidate_exists_popup').modal('show');
+          }
+
+          $('#candidate_exists_popup_body').html(candidatesHtml);
+
         }
         else
         {

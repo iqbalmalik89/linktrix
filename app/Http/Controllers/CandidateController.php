@@ -99,12 +99,17 @@ class CandidateController extends BaseController
 
  	public function unlockCandidate()
  	{
-		$candidate_id = \Request::input('candidate_id');
+		$candidate_id = base64_decode(\Request::input('candidate_id'));
+		$consultantId = \Request::input('consultant_id');
 
-		$data = $this->repo->unlockCandidate($candidate_id);
-		if($data)
+		$data = $this->repo->unlockCandidate($candidate_id, $consultantId);
+		if($data === 'owner')
 		{
-			return response()->json($data);
+			return response()->json( array('status' => 'error') );			
+		}
+		else if($data)
+		{
+			return response()->json( array('data' => $data, 'status' => 'success') );
 		}
 		else
 		{
@@ -131,11 +136,22 @@ class CandidateController extends BaseController
  	public function savePrimarySharing()
  	{
  		$candidateId = base64_decode(\Request::input('candidate_id'));
+ 		$consultantId = \Request::input('consultant_id'); 		
  		$dataType = \Request::input('data_type');
 
-		$user = \Session::get('user'); 			
-		$userId = $user['id'];
-		$data = $this->repo->savePrimarySharing($userId, $candidateId, $dataType);
+ 		if(!empty($consultantId))
+ 		{
+			$userId = $consultantId;
+			$type = 'consultant';
+ 		}
+ 		else
+ 		{
+			$user = \Session::get('user'); 			
+			$userId = $user['id']; 			
+			$type = 'user';
+ 		}
+
+		$data = $this->repo->savePrimarySharing($userId, $candidateId, $dataType, $type);
 		if($data)
 		{
 			return response()->json(array('status' => 'success'));
@@ -150,18 +166,23 @@ class CandidateController extends BaseController
  	{
  		$candidateId = base64_decode(\Request::input('candidate_id'));
  		$sharingId = \Request::input('sharing_id');
+ 		$consultantId = \Request::input('consultant_id');
 
  		if(!empty($consultantId))
+ 		{
  			$userId = $consultantId;
+ 			$type = 'consultant';
+ 		}
  		else
  		{
 			$user = \Session::get('user'); 			
  			$userId = $user['id'];
+ 			$type = 'user';
  		}
 
  		if(!empty($candidateId))
  		{
-			$data = $this->repo->addSharingAccess($userId, $sharingId);
+			$data = $this->repo->addSharingAccess($userId, $sharingId, $type);
 
 			return response()->json(array('status' => 'success'));
  		}
@@ -183,23 +204,28 @@ class CandidateController extends BaseController
  			$value = $phone;
  		else
  			$value = $cvPath;
+
  		if(!empty($consultantId))
+ 		{
  			$userId = $consultantId;
+ 			$userType = 'consultant';
+ 		}
  		else
  		{
 			$user = \Session::get('user'); 			
  			$userId = $user['id'];
+ 			$userType = 'user';
  		}
 
  		if(!empty($candidateId))
  		{
-			$data = $this->repo->addCandidateShare($userId, $candidateId, $value, $type);
+			$data = $this->repo->addCandidateShare($userId, $candidateId, $value, $type, $userType);
 
 			return response()->json(array('status' => 'success'));
  		}
  		else
  		{
-			return response()->json(array('status' => 'errir')); 			
+			return response()->json(array('status' => 'error')); 			
  		}
  	}
 
@@ -227,7 +253,12 @@ class CandidateController extends BaseController
 	public function getCandidate()
 	{
 		$candidate_id = \Request::input('candidate_id');
+		$consultantId = \Request::input('consultant_id');
 		$accessCheck = \Request::input('access_check');
+		
+
+		if(!empty($consultantId))
+			$this->repo->consultantId = $consultantId;
 
 		$data = $this->repo->get($candidate_id);
 
@@ -237,7 +268,12 @@ class CandidateController extends BaseController
 			if(!$data['is_owner'])
 			{
 				if(!empty($data['email']))
-					$data['email'] = 'Restricted';
+				{
+					if($data['email_access'])	
+						$data['email'] = $data['email'];
+					else
+						$data['email'] = 'Restricted';
+				}
 				else
 					$data['email'] = '';
 
@@ -319,9 +355,10 @@ class CandidateController extends BaseController
     public function checkDuplicateCheck()
     {
     	$email = \Request::get('email');
+    	$consultantId = \Request::get('consultant_id');
     	$encodedCandidateId = \Request::get('candidate_id');
     	$candidateId = base64_decode($encodedCandidateId);
-    	$resp = $this->repo->checkDuplicateCheck($candidateId, $email);
+    	$resp = $this->repo->checkDuplicateCheck($candidateId, $email, $consultantId);
     	
     	if($resp['code'] === 0)
     	{
@@ -334,6 +371,10 @@ class CandidateController extends BaseController
 		else if($resp['code'] === 3)
 		{
 			$data = array('status' => 'deleted', 'candidate_id' => $resp['candidate_id']);
+		}		
+		else if($resp['code'] === 6)
+		{
+			$data = array('status' => 'same_owner');
 		}		
 		else
 		{
@@ -413,14 +454,15 @@ class CandidateController extends BaseController
 		$search['search_job_title'] = \Request::input('search_job_title');
 		$search['search_tags'] = \Request::input('tags_field');
 		$search['search_mode'] = \Request::input('search_mode');
+		$search['search_consultant_id'] = \Request::input('search_consultant_id');
 
 
-		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']))
+		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']) || !empty($search['search_consultant_id']))
 		{
 			$searchMode = $search['search_mode'];
 			unset($search['search_mode']);
 			foreach ($search as $key => &$singleSearch) {
-				if(!empty($singleSearch) && $key !== 'search_tags')
+				if(!empty($singleSearch) && $key !== 'search_tags' && $key !== 'search_consultant_id')
 					$singleSearch = '%'.$singleSearch.'%'; 
 			}
 			$search['search_mode'] = $searchMode;
@@ -479,6 +521,7 @@ class CandidateController extends BaseController
 	{
 		$limit = \Request::input('limit');
 		$search = array();
+		$search['search_consultant_id'] = \Request::input('search_consultant_id');
 		$search['search_name'] = \Request::input('search_name');
 		$search['search_mode'] = \Request::input('search_mode');		
 		$search['search_job_title'] = \Request::input('search_job_title');
@@ -492,12 +535,12 @@ class CandidateController extends BaseController
 			$orderBy = 'asc';
 
 
-		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']))
+		if(!empty($search['search_name']) || !empty($search['search_job_title']) || !empty($search['search_tags']) || !empty($search['search_consultant_id']))
 		{
 			$searchMode = $search['search_mode'];
 			unset($search['search_mode']);
 			foreach ($search as $key => &$singleSearch) {
-				if(!empty($singleSearch) && $key !== 'search_tags')
+				if(!empty($singleSearch) && $key !== 'search_tags' && $key !== 'search_consultant_id')
 					$singleSearch = '%'.$singleSearch.'%'; 
 			}
 			$search['search_mode'] = $searchMode;

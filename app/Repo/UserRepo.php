@@ -316,11 +316,25 @@ class UserRepo
 
 	public function deleteUser($userId)
 	{
+		$allCandidates = array();
 		$user = $this->get($userId, true);
+		$candidateRepo = new CandidateRepo();
 		if(!empty($user))
 		{
-			$user->delete();
-			return true;
+			$candidates = Candidate::where('creator_id', $userId)->get()->toArray();
+			if(empty($candidates))
+			{
+				$user->delete();
+				return true;
+			}
+			else
+			{
+				foreach ($candidates as $key => $candidate) {
+					$linktrixId = $candidateRepo->getLintrixId($candidate['id']);
+					$allCandidates[] = array('linktrix_id' => $linktrixId, 'name' => $candidate['first_name'] . ''. $candidate['last_name']);
+				}
+				return $allCandidates;
+			}
 		}
 		else
 		{

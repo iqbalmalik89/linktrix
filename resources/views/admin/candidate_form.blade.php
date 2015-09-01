@@ -397,10 +397,11 @@ window.onbeforeunload = function(e) {
 
 
   $( document ).ready(function() {
-    getConsultant('');
+
     <?php if(!empty($_GET['candidate_id'])){ ?>
       getCandidate("<?php echo $_GET['candidate_id']; ?>");
     <?php } else {?>
+      getConsultant('');
       getTags();
       <?php } ?>
 

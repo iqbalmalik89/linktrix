@@ -97,7 +97,7 @@
 </div>
 
 
-   <div id="undelete_request" class="modal fade" style="z-index:99999!important">
+   <div id="undelete_request" class="modal fade" style="z-index:99999!important;">
   <div class="modal-dialog">
     <div class="modal-content">
       <!-- dialog body -->

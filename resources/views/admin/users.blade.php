@@ -160,6 +160,41 @@ $( document ).ready(function() {
 });
 
 </script>
+
+
+
+   <div id="candidate_exists_popup" class="modal fade" style="z-index:99999!important;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- dialog body -->
+
+
+
+      <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title">ERROR</h4>
+      </div>
+  
+      <div class="modal-body" style="overflow-y:scroll;">
+      <p>
+      <b> This user is creator of following candidates. Assign these candidates to other users. </b>
+      </p>
+      <div id="candidate_exists_popup_body" style="height:400px !important;"></div>
+      </div>
+      
+      <!-- dialog buttons -->
+      <div class="modal-footer">
+
+      <button type="button" data-dismiss="modal" class="btn">Cancel</button>
+ 
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
 <div class="modal fade" id="adduserPopup" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 <input type="hidden" id="user_id" value="">
 

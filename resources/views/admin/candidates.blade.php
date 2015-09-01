@@ -210,17 +210,22 @@ th
               <table>
               <tr>
                 <td>
+                  <select id="search_consultant_id" onchange="searchCandidates();"  class="selectpicker" data-live-search="true"></select>
+                </td>
+
+
+                <td>
                   
                 <input id="search_name" name="search_name" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Name" style="margin-left:6px;height:40px; width:160px;">
                 </td>
                 <td>
-                 <ul style="border:1px solid #ccc !important;width:360px !important; height:39px;margin-top:10px;" style="" id="job_title_ul"></ul>                
+                 <ul style="border:1px solid #ccc !important;width:290px !important; height:39px;margin-top:10px;" style="" id="job_title_ul"></ul>                
                 </td>
                
                 <td>
 <!--                 <input id="search_job_title" name="search_job_title" class="search_term" onkeyup="searchCandidates();" type="text" placeholder="Job Title" style="height:40px; width:150px;">
  -->
-                <ul style="border:1px solid #ccc !important;width:360px !important; height:38px;margin-top:10px;" style="" id="tags_ul"></ul>
+                <ul style="border:1px solid #ccc !important;width:290px !important; height:38px;margin-top:10px;" style="" id="tags_ul"></ul>
 
 
                 </td>
@@ -300,6 +305,7 @@ var globalRoleType = "<?php echo $role['type'];?>";
 $( document ).ready(function() {
   getTags('search');
   getJobTitle();  
+  getConsultant('');  
   getCandidates();
 });
 

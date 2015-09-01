@@ -1,8 +1,8 @@
-<div class="modal fade" id="candidate_detail" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal fade" id="candidate_detail" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" style="width:65%;">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button onclick="clearUnlockPopup();" type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                 <h4 class="modal-title"><span id="lbl_candidateName"></span> <a onclick="unlockProfile();" href="javascript:void(0);" id="lbl_unlock_btn" style="display:none;" class="btn btn-primary"> Unlock Profile </a> 
               <img src="shared_images/spinner.gif" style="display:none;" id="lbl_unlock_spinner">
 
@@ -147,8 +147,8 @@
             </div>
 
             <div class="modal-footer">
-
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="email_submit" class="btn btn-primary">Submit</button>
+                <button type="button" onclick="clearUnlockPopup();" class="btn btn-default" data-dismiss="modal">Close</button>
 
             </div>
         </div>

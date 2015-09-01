@@ -107,9 +107,14 @@ class UserController extends BaseController
     {
 		$userId = \Request::input('user_id');
 		$resp = $this->repo->deleteUser($userId);
-		if($resp)
+
+		if($resp === true)
 		{
 			return response()->json(array('status' => 'success', 'message' => 'User deleted successfully'));
+		}
+		else if(is_array($resp))
+		{
+			return response()->json(array('status' => 'candidate_exists', 'data' => $resp));
 		}
 		else
 		{

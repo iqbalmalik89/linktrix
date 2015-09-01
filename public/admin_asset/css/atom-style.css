@@ -2415,3 +2415,9 @@ ul.navigation > li > a.active {
   background: #ea2c46;
   color: #fff;
 }
+
+
+#candidate_exists_popup
+{
+	overflow:scroll;
+}

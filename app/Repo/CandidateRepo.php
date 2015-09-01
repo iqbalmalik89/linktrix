@@ -19,9 +19,11 @@ use Goodby\CSV\Export\Standard\Collection\PdoCollection;
 class CandidateRepo
 {
 	public $userRepo;
+	public $consultantId;
 
 	function __construct() {
 		$this->userRepo	= new UserRepo(new RoleRepo);
+		$this->consultantId = '';
     }
 
     public function getJobTitle()
@@ -111,37 +113,65 @@ class CandidateRepo
 		}
 	}
 
-	public function unlockCandidate($candidateId)
+	public function unlockCandidate($candidateId, $consultantId)
 	{
+
  		$resp = array('phone' => '', 
  					  'email' => '', 
  					  'home_number' => '', 
  					  'cv_url' => '',
  					  'cv_updated_at' => '',
  					  );
- 		
 
-		$candidateData = $this->get($candidateId);
+		$candidateData = $this->get(base64_encode($candidateId));
 
 		if(!empty($candidateData))
 		{
-			$decodeCandidateId = base64_decode($candidateId);
+			$decodeCandidateId = $candidateId;
 			$resp['phone'] = $candidateData['phone'];
 			$resp['email'] = $candidateData['email'];
 			$resp['home_number'] = $candidateData['home_number'];			
 			$resp['cv_url'] = $candidateData['cv_url'];
 			$resp['cv_updated_at'] = $candidateData['cv_updated_at'];
 
-			//Enter to CandidateShare
-			$user = \Session::get('user');
-			$currentUserId = $user['id'];
-			//$this->addCandidateShare($currentUserId, $decodeCandidateId);
+			$candidateName = ucfirst($candidateData['first_name'].' '.$candidateData['last_name']);
 
+		 	$candidateLinktrixId = $this->getLintrixId($decodeCandidateId);
+
+		 	// Creater Name
+		 	$userName = '';
+			$userData = $this->userRepo->get($candidateData['creator_id']);
+			if(!empty($userData))
+			{
+				$userName = $userData['name'];
+			}
+
+			$user = \Session::get('user');
+			$accessorName = $user['name'];
+
+			//Enter to CandidateShare
+			if(empty($consultantId))
+			{
+				$user = \Session::get('user');
+				$currentUserId = $user['id'];
+
+				// Unlock email body
+				$body = 'Hello '.$userName.', <br> '.$accessorName.' Unlocked candidate '.$candidateLinktrixId.':'.$candidateName;
+			}
+			else
+			{
+				$currentUserId = $consultantId;
+				$userData = $this->userRepo->get($consultantId);				
+
+				// Unlock email body
+				$body = 'Hello '.$userName.', <br> '.$accessorName.' Unlocked candidate '.$candidateLinktrixId.':'.$candidateName.' on behalf of '.$userData['name'];
+			}
+
+			//$this->addCandidateShare($currentUserId, $decodeCandidateId);
 			$this->addOwner($decodeCandidateId, array($currentUserId));
 			
 			// Send email to origional Owner
-			$candidateName = ucfirst($candidateData['first_name'].' '.$candidateData['last_name']);
-			$this->sendUnlockEmail($decodeCandidateId, $candidateData['creator_id'], $candidateName);
+			$this->sendUnlockEmail('Candidate Unlocked', $decodeCandidateId, $candidateData['creator_id'], $candidateName, $body);
 		}
 		else
 		{
@@ -164,7 +194,7 @@ class CandidateRepo
 		return $candidateShareArr;
 	}
 
-	public function addSharingAccess($userId, $sharingId)
+	public function addSharingAccess($userId, $sharingId, $type)
 	{
 		$getSharingData = CandidateShare::find($sharingId);
 
@@ -173,10 +203,37 @@ class CandidateRepo
 			$candidateRec = $this->get(base64_encode($getSharingData->candidate_id), true);
 			if(!empty($candidateRec))
 			{
+			 	$candidateLinktrixId = $this->getLintrixId($getSharingData->candidate_id);
+				$userData = $this->userRepo->get($getSharingData->user_id);
+				$user = \Session::get('user');
+				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
+
+
+				$shareString = '';
+				if($getSharingData->field_type == 'phone')
+				{
+					$shareString = ' Phone Number '.$getSharingData->data_field;
+				}
+				else if($getSharingData->field_type == 'cv')
+				{
+					$shareString = ' CV';
+				}
+
+				if($type == 'user')
+				{
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
+				}
+				else
+				{
+					$assistantData = $this->userRepo->get($userId);
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+				}
+
+
+
 				if(!empty($candidateRec->creator_id))
 				{
-					$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
-					$this->sendUnlockEmail($candidateRec->id, $getSharingData->user_id, $candidateName);
+					$this->sendUnlockEmail('Candidate '.ucfirst($getSharingData->field_type).' Shared', $candidateRec->id, $getSharingData->user_id, $candidateName, $body);
 				}
 			}
 
@@ -199,8 +256,9 @@ class CandidateRepo
 		return $access;
 	}
 
-	public function savePrimarySharing($userId, $candidateId, $dataType)
+	public function savePrimarySharing($userId, $candidateId, $dataType, $type)
 	{
+		$dbCandidateRec = Candidate::find($candidateId);
 		$candidateRec = $this->get(base64_encode($candidateId), true);
 		if(!empty($candidateRec))
 		{
@@ -212,8 +270,39 @@ class CandidateRepo
 
 			if(!empty($candidateRec->creator_id))
 			{
+				$shareString = '';
+				if($dataType == 'phone')
+				{
+					$shareString = ' Phone Number '.$dbCandidateRec['phone'];
+				}
+				else if($dataType == 'email')
+				{
+					$shareString = ' Email '.$dbCandidateRec['email'];
+				}
+				else if($dataType == 'cv')
+				{
+					$shareString = ' CV';
+				}
+
 				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
-				$this->sendUnlockEmail($candidateRec->id, $candidateRec->creator_id, $candidateName);
+
+				$userData = $this->userRepo->get($candidateRec['creator_id']);
+
+				$user = \Session::get('user');
+			 	$candidateLinktrixId = $this->getLintrixId($candidateId);
+
+				if($type == 'user')
+				{
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
+				}
+				else
+				{
+					$assistantData = $this->userRepo->get($userId);
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+				}
+
+
+				$this->sendUnlockEmail('Candidate '.ucfirst($dataType).' Shared', $candidateRec->id, $candidateRec->creator_id, $candidateName, $body);
 			}
 
 			return true;
@@ -226,13 +315,22 @@ class CandidateRepo
 
 	public function getCandidateShare($id, $isOwner)
 	{
-		$user = \Session::get('user');
-		$sharingAccess = $this->getSharingAccess($user['id'], $id);
+		if(!empty($this->consultantId))
+		{
+			$userId = $this->consultantId;
+		}
+		else
+		{
+			$user = \Session::get('user');
+			$userId = $user['id'];
+		}
+
+		$sharingAccess = $this->getSharingAccess($userId, $id);
 		$candidateShare = CandidateShare::find($id);
 		if(!empty($candidateShare))
 		{
 			$userData = $this->userRepo->get($candidateShare->user_id);
-			if($user['id'] == $candidateShare->user_id || $isOwner || $sharingAccess)
+			if($userId == $candidateShare->user_id || $sharingAccess)
 				$owner = '1';
 			else
 				$owner = '0';
@@ -276,7 +374,7 @@ class CandidateRepo
 		}
 	}
 
-	public function addCandidateShare($userId, $candidateId, $fieldVaue, $type)
+	public function addCandidateShare($userId, $candidateId, $fieldVaue, $type, $userType)
 	{
 		// $candidateShareExists = $this->candidateShareExists($userId, $candidateId);
 		// if(empty($candidateShareExists))
@@ -289,7 +387,31 @@ class CandidateRepo
 			if(!empty($candidateRec->creator_id))
 			{
 				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
-				$this->sendUnlockEmail($candidateRec->id, $candidateRec->creator_id, $candidateName, true);
+				$userData = $this->userRepo->get($candidateRec->creator_id);
+				$user = \Session::get('user');
+				$candidateLinktrixId = $this->getLintrixId($candidateId);
+
+				$shareString = '';
+				if($type == 'phone')
+				{
+					$shareString = ' Phone Number';
+				}
+				else if($type == 'cv')
+				{
+					$shareString = ' CV';
+				}
+
+				if($userType == 'user')
+				{
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' added candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
+				}
+				else
+				{
+					$assistantData = $this->userRepo->get($userId);
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+				}
+
+				$this->sendUnlockEmail('Candidate Added '.ucfirst($type), $candidateRec->id, $candidateRec->creator_id, $candidateName, $body);
 			}
 
 			$date = date('Y-m-d H:i:s');
@@ -354,31 +476,14 @@ class CandidateRepo
 		return 'LT-A'.$alphabet.str_pad($newId, 5, 0, STR_PAD_LEFT);
 	}
 
-	public function sendUnlockEmail($candidateId, $creatorId, $candidateName, $addInfo = false)
+	public function sendUnlockEmail($subject, $candidateId, $creatorId, $candidateName, $body)
 	{
 		$userData = $this->userRepo->get($creatorId);
 		if(!empty($userData))
 		{
 			$to = $userData['email'];
-			$candidateLinktrixId = $this->getLintrixId($candidateId);
 
-			$user = \Session::get('user');
-			$accessorName = $user['name'];
-
-			if($addInfo)
-			{
-				$subject = 'Candidate Information added';
-				$txt = '<html><body>Hello, '.$userData['name'].'<br>
-						User '.$accessorName.' added information of candidate '.$candidateLinktrixId.':'.$candidateName.'
-				</body></html>';
-			}
-			else
-			{
-				$subject = 'Candidate Accessed';
-				$txt = '<html><body>Hello, '.$userData['name'].'<br>
-						User '.$accessorName.' accessing candidate '.$candidateLinktrixId.':'.$candidateName.'
-				</body></html>';				
-			}
+			$txt = '<html><body>'.$body.'</body></html>';
 
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
@@ -420,11 +525,24 @@ class CandidateRepo
 
 	}
 
-	public function checkDuplicateCheck($candidateId, $email)
+	public function checkDuplicateCheck($candidateId, $email, $consultantId)
 	{
 		$candidateRec = $this->checkEmailDuplicate($candidateId, $email);
 		if(!empty($candidateRec))
 		{
+			if(!empty($consultantId))
+			{
+				$role = $this->getUserRole($consultantId);
+
+				$isOwner = $this->isOwner($candidateRec->id, $role);
+
+				if($isOwner)
+				{
+					return array('code' => 6); // already owner external cosultant	
+				}
+			}
+
+
 			if(empty($candidateRec->deleted))
 			{
 				$role = $this->getUserRole();
@@ -433,7 +551,7 @@ class CandidateRepo
 				// If owner, just gave error of existing email
 				if($isOwner)
 				{
-					return array('code' => 0);
+					return array('code' => 0); // already owner current user
 				}
 				else
 				{
@@ -450,7 +568,7 @@ class CandidateRepo
 		}
 		else
 		{
-			return array('code' => 3);
+			return array('code' => 2);
 		}
 	}
 
@@ -628,6 +746,9 @@ class CandidateRepo
 
 	public function importCsv($csvPath)
 	{
+		$user = \Session::get('user');
+		$currentUserId = $user['id'];
+
 		$path = \Utility::getRoot('csv') . $csvPath;
 		if(file_exists($path))
 		{
@@ -642,25 +763,46 @@ class CandidateRepo
 			        	$row++;
 			        	continue;
 			        }
-			        $param = array();
-			        if(isset($data[0]))
-				        $param['first_name'] = $data[0];
-			        if(isset($data[1]))
-				        $param['last_name'] = $data[1];
-			        if(isset($data[2]))
-				        $param['email'] = $data[2];
-			        if(isset($data[3]))
-				        $param['company'] = $data[3];
-			        if(isset($data[4]))
-				        $param['job_title'] = $data[4];
-			        if(isset($data[5]))
-				        $param['category'] = $data[5];
 
-			        if(!empty($param['first_name']))
+
+			        $rec = $this->checkEmailDuplicate('', $data[2]);
+			        if(!$rec)
 			        {
-				        $candidateId = $this->addCandidate($param);
-				        $this->addCompany($candidateId, $param['company'], '', '', '', $param['job_title']);
+				        $param = array();
+				        if(isset($data[0]))
+					        $param['first_name'] = $data[0];
+				        if(isset($data[1]))
+					        $param['last_name'] = $data[1];
+				        if(isset($data[2]))
+					        $param['email'] = $data[2];
+				        if(isset($data[3]))
+					        $param['company'] = $data[3];
+				        if(isset($data[4]))
+					        $param['job_title'] = $data[4];
+				        if(isset($data[5]))
+					        $param['category'] = $data[5];
+
+				        if(!empty($param['first_name']))
+				        {
+					        $candidateId = $this->addCandidate($param);
+					        $this->addCompany($candidateId, $param['company'], '', '', '', $param['job_title']);
+				        }			        	
 			        }
+			        else
+			        {
+			        	if($currentUserId != $rec->creator_id)
+			        	{
+							$access = $this->checkPrimaryAccess($currentUserId, $rec->id, 'email');
+							if(!$access)
+							{
+								$this->savePrimarySharing($currentUserId, $rec->id, 'email', 'user');
+							}
+			        	}
+			        }
+
+
+
+
 			        $row++;
 			    }
 			    fclose($handle);
@@ -680,7 +822,7 @@ class CandidateRepo
 		$creatorId = $user['id'];
 		$newCandidate = new Candidate();
 		if(!empty($params['consultant_id']))
-		{			
+		{
 			$newCandidate->creator_id = $params['consultant_id'];
 		}
 		else			
@@ -697,6 +839,9 @@ class CandidateRepo
 
 		if(isset($params['phone']))
 			$newCandidate->phone = $params['phone'];
+		else
+			$newCandidate->phone = '';
+
 		if(!empty($params['date_of_birth']))
 			$newCandidate->date_of_birth = date('Y-m-d', strtotime($params['date_of_birth']));
 		if(isset($params['email']))
@@ -751,11 +896,19 @@ class CandidateRepo
 	public function updateCandidate($candidateId, $params)
 	{
 		$newCandidate = Candidate::find($candidateId);
+		$user = \Session::get('user');
+		$creatorId = $user['id'];
 
 		if (!empty($newCandidate)) {
 			$candidateexists = $this->checkEmailDuplicate($candidateId, $params['email']);
 			if(!$candidateexists)
 			{
+
+				if(!empty($params['consultant_id']))
+				{			
+					$newCandidate->creator_id = $params['consultant_id'];
+				}
+
 				$oldRec = $newCandidate->toArray();
 				$newCandidate->first_name = $params['first_name'];
 				$newCandidate->last_name = $params['last_name'];
@@ -923,6 +1076,11 @@ class CandidateRepo
 				unset($exportElement['candidate_sharing']);
 				unset($exportElement['basic_salary']);
 				unset($exportElement['deleted']);
+				unset($exportElement['candidate_sharing']);
+				unset($exportElement['phone_access']);
+				unset($exportElement['cv_access']);
+				unset($exportElement['email_access']);
+
 				if($exportElement['date_of_birth'] == '0000-00-00')
 					$exportElement['date_of_birth'] = '';
 
@@ -1097,6 +1255,7 @@ class CandidateRepo
     	$searchBool = false;
 
     	$searchName = $search['search_name'];
+    	$searchCreatorId = $search['search_consultant_id'];
     	$searchJobTitle = $search['search_job_title'];
     	$searchTags = $search['search_tags'];
     	$searchMode = $search['search_mode'];
@@ -1105,12 +1264,13 @@ class CandidateRepo
 		$userType = $user['role']['type'];
 
 
-    	if(!empty($searchName) || !empty($searchJobTitle) || !empty($searchTags))
+    	if(!empty($searchName) || !empty($searchJobTitle) || !empty($searchTags) || !empty($searchCreatorId))
     	{
     		$searchBool = true;
     		$searchNamePart = '';
     		$searchTagsPart = '';
     		$searchJobTitlePart = '';
+    		$searchCreatorIdPart = '';
     		if(!empty($searchTags))
     		{
     			$searchTags = explode(',' , $searchTags);
@@ -1134,12 +1294,19 @@ class CandidateRepo
     			$searchNamePart = ' (c.first_name LIKE "'.$searchName.'" OR c.last_name LIKE "'.$searchName.'") ';
     		}
 
+    		if(!empty($searchCreatorId))
+    		{
+    			$searchCreatorIdPart = ' c.creator_id = '.$searchCreatorId.' ';
+    		}
+
     		if(!empty($searchJobTitle))
     		{
     			if(!empty($searchNamePart))
     				$searchNamePart = ' '.$searchMode.' ('. $searchNamePart.')';
     			if(!empty($searchTagsPart))
     				$searchTagsPart = ' '.$searchMode.' ('. $searchTagsPart.')';
+    			if(!empty($searchCreatorId))
+    				$searchTagsPart = ' '.$searchMode.' ('. $searchCreatorId.')';
 
 
     			$searchJobTitleArr = explode(',' , $searchJobTitle);
@@ -1164,18 +1331,30 @@ class CandidateRepo
 
 
     			$query = 'select c.id from candidates as c, candidate_companies as cc where c.id = cc.candidate_id
-    			 AND ( '.$searchJobTitlePart.') '.$searchNamePart.' '.$searchTagsPart.$deletedPart.'   group by c.id';
+    			 AND ( '.$searchJobTitlePart.') '.$searchNamePart.' '.$searchTagsPart. $searchTagsPart .$deletedPart.'   group by c.id';
     		}
     		else
     		{
     			if(!empty($searchNamePart) && !empty($searchTagsPart))
     				$searchTagsPart = ' '.$searchMode.' '.$searchTagsPart;
 
+    			if(!empty($searchCreatorIdPart))
+    			{
+	    			if(!empty($searchNamePart) || !empty($searchTagsPart))
+	    				$searchCreatorIdPart = ' '.$searchMode.' '.$searchCreatorIdPart;
+    			}
+
+
 				if($userType == 'admin')
 					$deletedPart = '';
 				else
 					$deletedPart = ' AND c.deleted = 0 ';
-    			$query = 'select c.id from candidates as c where '.$searchNamePart.' '.$searchTagsPart.$deletedPart.' group by c.id';
+
+				$searchCriteria = trim($searchNamePart.' '.$searchTagsPart.$searchCreatorIdPart.$deletedPart);
+				if(!empty($searchCriteria))
+					$searchCriteria = ' where '. $searchCriteria;
+    			$query = 'select c.id from candidates as c '.$searchCriteria.' group by c.id';
+    			
     		}
 
 			$candidates = \DB::select($query);
@@ -1188,7 +1367,6 @@ class CandidateRepo
 			else
 				$candidates = Candidate::where('deleted', '=', '0')->orderBy('id', 'desc');
 		}
-
 		if(!empty($candidates))
 		{
 			if(!$searchBool)
@@ -1208,7 +1386,11 @@ class CandidateRepo
 	            // Hide data if owner is not accessing
 	            if(!$candidateData['is_owner'])
 	            {
-	            	$candidateData['email'] = 'Restricted'; // restricted
+	            	if($candidateData['email_access'])
+		            	$candidateData['email'] = $candidateData['email'];
+	            	else
+		            	$candidateData['email'] = 'Restricted'; // restricted
+
 	            	$candidateData['phone'] = 'Restricted';	            	
 	            }
 
@@ -1252,8 +1434,16 @@ class CandidateRepo
 		date_default_timezone_set('Asia/Singapore');		
 
 		$id = \Utility::decrypt($id);
-		$user = \Session::get('user');
-		$currentUserId = $user['id'];
+
+		if(!empty($this->consultantId))
+		{
+			$currentUserId = $this->consultantId;
+		}
+		else
+		{
+			$user = \Session::get('user');
+			$currentUserId = $user['id'];
+		}
 
 		$candidateShareExists = $this->candidateShareExists($currentUserId, $id);		
 
@@ -1272,9 +1462,14 @@ class CandidateRepo
 				else
 					$candidateData['cv_url'] = '';
 
-				$role = $this->getUserRole();
-				$candidateData['is_owner'] = $this->isOwner($id, $role);
+				if(!empty($this->consultantId)){
+					$role = $this->getUserRole($this->consultantId);
+				}
+				else{
+					$role = $this->getUserRole();
+				}
 
+				$candidateData['is_owner'] = $this->isOwner($id, $role);
 				$candidateData['candidate_sharing'] = $this->getCandidateShares($id, $candidateData['is_owner']);
 
 				$candidateData['remarks'] = nl2br($candidateData['remarks']);
@@ -1282,10 +1477,12 @@ class CandidateRepo
 				if(!$candidateData['is_owner']){
 					$candidateData['phone_access'] = $this->checkPrimaryAccess($currentUserId, $id, 'phone');
 					$candidateData['cv_access'] = $this->checkPrimaryAccess($currentUserId, $id, 'cv');
+					$candidateData['email_access'] = $this->checkPrimaryAccess($currentUserId, $id, 'email');					
 				}
 				else{
 					$candidateData['phone_access'] = 1;
 					$candidateData['cv_access'] = 1;					
+					$candidateData['email_access'] = 1;
 				}
 
 				if(empty($candidateData['cv_path']))
@@ -1427,13 +1624,27 @@ class CandidateRepo
 
 	}
 
-	public function getUserRole()
+	public function getUserRole($userId = 0)
 	{
 		$resp = array();
-		$user = \Session::get('user');
-		$resp = $user['role'];
-		$resp['role_id'] = $user['role']['id'];
-		$resp['id'] = $user['id'];		
+		if(empty($userId))
+		{
+			$user = \Session::get('user');
+			$resp = $user['role'];
+			$resp['role_id'] = $user['role']['id'];
+			$resp['id'] = $user['id'];					
+		}
+		else
+		{
+			$userData = $this->userRepo->get($userId);
+			if(!empty($userData['role_id']))
+			{
+				$resp = $this->userRepo->roleRepo->get($userData['role_id']);
+				$resp['role_id'] = $userData['role_id'];
+				$resp['id'] = $userId;
+			}
+		}
+
 		return $resp;
 	}
 
