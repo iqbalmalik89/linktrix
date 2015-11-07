@@ -52,6 +52,7 @@ function resetPassword()
 
   if(check)
   {
+    $('#reset_spinner').show();
     $.ajax({
       type: 'POST',
       url: apiUrl + 'reset_password',
@@ -61,6 +62,7 @@ function resetPassword()
 
       },
       success:function(data){
+        $('#reset_spinner').hide();
         if(data.status == 'success')
         {
           showMsg('#msg', 'Password reset successfully. Redirecting...', 'green');
@@ -106,6 +108,7 @@ function forgotPassword()
 
   if(check)
   {
+    $('#forgot_spinner').show();
     $.ajax({
       type: 'POST',
       url: apiUrl + 'forgot',
@@ -115,6 +118,7 @@ function forgotPassword()
 
       },
       success:function(data){
+        $('#forgot_spinner').hide();        
         if(data.status == 'success')
         {
           showMsg('#msg', 'An email is sent to you. Please check email', 'green');
@@ -136,7 +140,9 @@ function loginUser()
 {
   var userEmail = $.trim($('#user_email').val());
   var userPassword = $.trim($('#user_password').val());    
+  var rememberMe = $('#remember_me').prop('checked');
   var check = true;
+
 
   if(userEmail == '')
   {
@@ -154,10 +160,11 @@ function loginUser()
 
   if(check)
   {
+    $('#login_spinner').show()
     $.ajax({
       type: 'POST',
       url: apiUrl + 'login',
-      data: { email: userEmail, password: userPassword },
+      data: { email: userEmail, password: userPassword, remember_me:rememberMe },
       dataType:"JSON", 
       beforeSend:function(){
 
@@ -171,6 +178,7 @@ function loginUser()
         else
         {
           showMsg('#msg', data.message, 'red');                    
+          $('#login_spinner').hide()
         }
 
       },

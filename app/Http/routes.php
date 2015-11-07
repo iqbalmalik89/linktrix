@@ -71,7 +71,7 @@ $app->group(['prefix' => '/api/'], function($app)
 
 
 	//Candidate
-	$app->post('candidate', 'App\Http\Controllers\CandidateController@addupdateCandidate');
+	$app->put('add_update_candidate', 'App\Http\Controllers\CandidateController@addupdateCandidate');
 	$app->delete('candidate', 'App\Http\Controllers\CandidateController@deleteCandidate');
 	$app->get('candidates', 'App\Http\Controllers\CandidateController@getCandidates');
 	$app->get('candidate', 'App\Http\Controllers\CandidateController@getCandidate');
@@ -81,13 +81,15 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->get('export_download', 'App\Http\Controllers\CandidateController@exportDownload');
 	$app->post('unlock_candidate', 'App\Http\Controllers\CandidateController@unlockCandidate');
 	$app->get('job_title', 'App\Http\Controllers\CandidateController@getJobTitle');
-	$app->get('check_duplicate_check', 'App\Http\Controllers\CandidateController@checkDuplicateCheck');
+	$app->get('duplicate_email', 'App\Http\Controllers\CandidateController@checkDuplicateCheck');
 	$app->post('change_creator', 'App\Http\Controllers\CandidateController@changeCreator');
 	$app->post('undelete_candidate', 'App\Http\Controllers\CandidateController@undeleteCandidate');
 	$app->post('undelete_request', 'App\Http\Controllers\CandidateController@undeleteRequest');
 	$app->post('sharing_save', 'App\Http\Controllers\CandidateController@saveShare');
 	$app->post('sec_info_sharing', 'App\Http\Controllers\CandidateController@secInfoShare');
 	$app->post('primary_sharing', 'App\Http\Controllers\CandidateController@savePrimarySharing');
+	$app->delete('sec_share', 'App\Http\Controllers\CandidateController@removeSecSharing');
+
 
 
 	$app->post('cv_upload', 'App\Http\Controllers\CandidateController@cvUpload');

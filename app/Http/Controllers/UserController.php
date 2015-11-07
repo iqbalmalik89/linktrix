@@ -126,7 +126,8 @@ class UserController extends BaseController
 	{
 		$email = \Request::input('email');
 		$password = \Request::input('password');
-		$resp = $this->repo->loginUser($email, $password);
+		$rememberMe = \Request::input('remember_me');		
+		$resp = $this->repo->loginUser($email, $password, $rememberMe);
 
 		if($resp === 'disable')
 		{
@@ -248,7 +249,6 @@ class UserController extends BaseController
 						'pic' => \Request::input('pic_path'),
 						);
 		$rules = array('name' => 'required',
-					   'email' => 'required',
 					   'contact_number' => 'required',
 					  );
 

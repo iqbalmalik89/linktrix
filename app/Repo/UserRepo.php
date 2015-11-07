@@ -6,12 +6,15 @@ class UserRepo
 {
 	public $roleRepo;
 	public $login;
+	public $adminEmail;
+
     function __construct(RoleRepo $roleRepo) {
        $this->roleRepo = $roleRepo;
        $this->login = false;
+       $this->adminEmail = 'database@linktrix.com.sg';
     }
 
-	public function loginUser($email, $password)
+	public function loginUser($email, $password, $rememberMe)
 	{
 		$resp = false;
 		$this->login = true;
@@ -23,7 +26,16 @@ class UserRepo
 				if (\Hash::check($password, $userData['password'])) {
 					$this->setUserSession($userData);
 					$resp = true;
-				}				
+
+					// Remember Me Check
+					if($rememberMe == 'true' || $rememberMe === true )
+					{
+						$cookieTime = (3600 * 24 * 30); // 30 days
+						$passwordHash = $password;
+					    setcookie ('linktrix', 'usr='.$email.'&hash='.$passwordHash, time() + $cookieTime, '/');						
+					    $_COOKIE['linktrix'] = 'usr='.$email.'&hash='.$passwordHash;
+					}
+				}
 			}
 			else
 			{
@@ -101,7 +113,7 @@ class UserRepo
 			Click on the link below to reset password <br><a href="'.$url.'">Reset Password</a></body></html>';
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: jasonbourne501@gmail.com";
+			$headers .= "From: ".$this->adminEmail;
 			mail($to,$subject,$txt,$headers);			
 
 			return true;
@@ -213,6 +225,7 @@ class UserRepo
 	public function updateProfile($params)
 	{
 		$userId = \Session::get('user')['id'];
+		
 		$userExists = $this->userExistsByEmail($params['email'], $userId);
 		if(!$userExists)
 		{
@@ -408,7 +421,7 @@ class UserRepo
 		$txt = '<html><body>Hello,<br> Here is your account credentials. <br><br> Email: '.$email.' <br> Password:  '.$password.' <br><a href="'.url('login').'">LOGIN ON LINKTRIX</a></body></html>';
 		$headers  = 'MIME-Version: 1.0' . "\r\n";
 		$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-		$headers .= "From: jasonbourne501@gmail.com";
+		$headers .= "From: ".$this->adminEmail;
 		mail($to,$subject,$txt,$headers);
 
 

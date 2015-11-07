@@ -469,8 +469,6 @@ class CandidateController extends BaseController
 			$limit = 0;
 		}
 
-
-
 		$resp = $this->repo->exportCandidates($search);
 		
     	// $cvPath = \Utility::getRoot('export').\Request::input('file');
@@ -480,6 +478,21 @@ class CandidateController extends BaseController
 	   	// 	echo 'File not found';
     }
     
+    public function removeSecSharing()
+    {
+		$shareId = \Request::input('share_id');
+
+		$resp = $this->repo->removeSecSharing($shareId);
+
+		if($resp)
+		{
+			return response()->json(array('status' => 'success'));
+		}
+		else
+		{
+			return response()->json(array('status' => 'error'));
+		}		
+    }
 
     public function exportCandidates()
     {

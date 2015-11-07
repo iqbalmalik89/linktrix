@@ -20,10 +20,12 @@ class CandidateRepo
 {
 	public $userRepo;
 	public $consultantId;
+	public $adminEmail;
 
 	function __construct() {
 		$this->userRepo	= new UserRepo(new RoleRepo);
 		$this->consultantId = '';
+		$this->adminEmail = 'database@linktrix.com.sg';
     }
 
     public function getJobTitle()
@@ -125,7 +127,10 @@ class CandidateRepo
 
 		$candidateData = $this->get(base64_encode($candidateId));
 
-		if(!empty($candidateData))
+		$role = $this->getUserRole($consultantId);
+		$isOwner = $this->isOwner($candidateId, $role);
+
+		if(!empty($candidateData) && !$isOwner)
 		{
 			$decodeCandidateId = $candidateId;
 			$resp['phone'] = $candidateData['phone'];
@@ -173,10 +178,7 @@ class CandidateRepo
 			// Send email to origional Owner
 			$this->sendUnlockEmail('Candidate Unlocked', $decodeCandidateId, $candidateData['creator_id'], $candidateName, $body);
 		}
-		else
-		{
 
-		}
 		return $resp;
 	}
 
@@ -221,19 +223,19 @@ class CandidateRepo
 
 				if($type == 'user')
 				{
-					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' accessed candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
 				}
 				else
 				{
 					$assistantData = $this->userRepo->get($userId);
-					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' accessed candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
 				}
 
 
 
 				if(!empty($candidateRec->creator_id))
 				{
-					$this->sendUnlockEmail('Candidate '.ucfirst($getSharingData->field_type).' Shared', $candidateRec->id, $getSharingData->user_id, $candidateName, $body);
+					$this->sendUnlockEmail('Candidate '.ucfirst($getSharingData->field_type).' Accessed', $candidateRec->id, $getSharingData->user_id, $candidateName, $body);
 				}
 			}
 
@@ -256,11 +258,15 @@ class CandidateRepo
 		return $access;
 	}
 
+
 	public function savePrimarySharing($userId, $candidateId, $dataType, $type)
 	{
 		$dbCandidateRec = Candidate::find($candidateId);
 		$candidateRec = $this->get(base64_encode($candidateId), true);
-		if(!empty($candidateRec))
+
+		$access = $this->checkPrimaryAccess($userId, $candidateId, $dataType);
+
+		if(!empty($candidateRec) && !$access)
 		{
 			$access = new PrimaryAccess();
 			$access->user_id = $userId;
@@ -274,14 +280,17 @@ class CandidateRepo
 				if($dataType == 'phone')
 				{
 					$shareString = ' Phone Number '.$dbCandidateRec['phone'];
+					$shareStr = ' accessed ';
 				}
 				else if($dataType == 'email')
 				{
 					$shareString = ' Email '.$dbCandidateRec['email'];
+					$shareStr = ' shared ';
 				}
 				else if($dataType == 'cv')
 				{
 					$shareString = ' CV';
+					$shareStr = ' accessed ';
 				}
 
 				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
@@ -293,16 +302,16 @@ class CandidateRepo
 
 				if($type == 'user')
 				{
-					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' '.$shareStr.' candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString;
 				}
 				else
 				{
 					$assistantData = $this->userRepo->get($userId);
-					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' '.$shareStr.' candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
 				}
 
 
-				$this->sendUnlockEmail('Candidate '.ucfirst($dataType).' Shared', $candidateRec->id, $candidateRec->creator_id, $candidateName, $body);
+				$this->sendUnlockEmail('Candidate '.ucfirst($dataType).' '.$shareStr, $candidateRec->id, $candidateRec->creator_id, $candidateName, $body);
 			}
 
 			return true;
@@ -355,14 +364,19 @@ class CandidateRepo
 			}
 
 
-
+//			echo $candidateShare->user_id.' '.$userId.'<br>';
+			if($candidateShare->user_id === $userId)
+				$delAccess = 1;
+			else
+				$delAccess = 0;
 
 			$arr = array('id' => $candidateShare->id, 
 						 'candidate_id' => $candidateShare->candidate_id, 
 						 'user_id' => $candidateShare->user_id,
 						 'user_name' => $userData['name'],
 						 'data_field' => $field,
-						 'cv_url' => $cvUrl,						 
+						 'cv_url' => $cvUrl,
+						 'del_access' => $delAccess,
 						 'field_type' => $candidateShare->field_type,
 						 'owner' => $owner
 						 );
@@ -374,16 +388,25 @@ class CandidateRepo
 		}
 	}
 
+	public function removeSecSharing($shareId)
+	{
+		CandidateShare::where('id', $shareId)->delete();
+		CandidateShareAccess::where('sharing_id', $shareId)->delete();
+		return true;
+	}
+
 	public function addCandidateShare($userId, $candidateId, $fieldVaue, $type, $userType)
 	{
 		// $candidateShareExists = $this->candidateShareExists($userId, $candidateId);
 		// if(empty($candidateShareExists))
 		// {
 
-		$candidateRec = $this->get(base64_encode($candidateId), true);
-		if(!empty($candidateRec))
-		{
+		$exists = CandidateShare::where('user_id', $userId)->where('candidate_id', $candidateId)->
+			  where('field_type', $type)->count();
 
+		$candidateRec = $this->get(base64_encode($candidateId), true);
+		if(!empty($candidateRec) && ($exists === 0))
+		{
 			if(!empty($candidateRec->creator_id))
 			{
 				$candidateName = $candidateRec->first_name .' '. $candidateRec->last_name;
@@ -408,7 +431,7 @@ class CandidateRepo
 				else
 				{
 					$assistantData = $this->userRepo->get($userId);
-					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' shared candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
+					$body = 'Hello '.$userData['name'].', <br> '.$user['name'].' accessed candidate '.$candidateLinktrixId.':'.$candidateName.' - '.$shareString.' on behalf of '.$assistantData['name'];
 				}
 
 				$this->sendUnlockEmail('Candidate Added '.ucfirst($type), $candidateRec->id, $candidateRec->creator_id, $candidateName, $body);
@@ -487,7 +510,7 @@ class CandidateRepo
 
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: jasonbourne501@gmail.com";
+			$headers .= "From: ".$this->adminEmail;
 
 			mail($to,$subject,$txt,$headers);			
 		}
@@ -505,14 +528,14 @@ class CandidateRepo
 			$linktrixId = $this->getLintrixId($candidateData->id);
 
 			$time = date('Y-m-d H:i:s', (time() + 28800));
-			$to  = 'shawn@linktrix.com.sg';
+			$to  = $this->adminEmail;
 			$subject = 'Request to Undelete Candidate';
 			$txt = '<html><body>Hello, User '.$userName.' requested to undelete
 					Candidate '.$linktrixId.':'.$candidateData['first_name'].' '.$candidateData['last_name'].' at '.$time.'
 			</body></html>';
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: jasonbourne501@gmail.com";			
+			$headers .= "From: ".$this->adminEmail;			
 			return true;
 		}
 		else
@@ -717,7 +740,7 @@ class CandidateRepo
 		</body></html>';
 		$headers  = 'MIME-Version: 1.0' . "\r\n";
 		$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-		$headers .= "From: jasonbourne501@gmail.com";
+		$headers .= "From: ".$this->adminEmail;
 
 		mail($to,$subject,$txt,$headers);			
 	}
@@ -1208,14 +1231,14 @@ class CandidateRepo
 			$linktrixId = $this->getLintrixId($candidateData->id);
 
 			$time = date('Y-m-d H:i:s', (time() + 28800));
-			$to  = 'shawn@linktrix.com.sg';
+			$to  = $this->adminEmail;
 			$subject = 'Candidate Deleted';
 			$txt = '<html><body>Hello, User '.$userName.' deleted
 					Candidate '.$linktrixId.':'.$candidateData['first_name'].' '.$candidateData['last_name'].' at '.$time.'
 			</body></html>';
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: jasonbourne501@gmail.com";
+			$headers .= "From: ".$this->adminEmail;
 
 			mail($to,$subject,$txt,$headers);	
 			

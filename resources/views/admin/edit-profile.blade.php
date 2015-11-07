@@ -23,7 +23,6 @@ input[type='file'] {
   <div id="main">
   @include('admin.partials.nav')
 
-
     <div class="margin-container">
       <div class="scrollable wrapper">
         <div class="row">
@@ -66,6 +65,7 @@ input[type='file'] {
                                       <label class="col-lg-2 control-label">Role</label>
                                       <div class="col-lg-6" style="margin-top:5px;">
                                       <?php echo ucfirst($user['role']['type']);?>
+                                      <input type="hidden" id="hidden_role_id" value="<?php echo $user['role']['id'];?>">
                                       </div>
                                   </div>
                                   <div class="form-group">
@@ -77,7 +77,7 @@ input[type='file'] {
                                   <div class="form-group">
                                       <label class="col-lg-2 control-label">Email</label>
                                       <div class="col-lg-6">
-                                          <input type="text" placeholder=" " id="email" class="form-control" value="{{$user['email']}}">
+                                          <input type="text" placeholder=" " <?php if($user['role']['id'] != 1) echo 'disabled="disabled"'; ?> id="email" class="form-control" value="{{$user['email']}}">
                                       </div>
                                   </div>
                                   <div class="form-group">
@@ -90,16 +90,25 @@ input[type='file'] {
                                       <label class="col-lg-2 control-label">Change Avatar</label>
                                       <div class="col-lg-6">
                                       <input type="file" id="profile_pic" name="profile_pic" data-url="api/pic_upload" class="file-pos">
-                                      <img src="{{$user['url']}}" id="temp_pic" width="50" height="50">
+                                      <table>
+                                      <td><td>
+                                      <img src="{{$user['url']}}" id="temp_pic" width="50" height="50"></td>
+                                      <td>
+                                        <img id="image_spinner" src="shared_images/spinner.gif" style="display:none;">
+                                      </td></td></table>
                                       <input type="hidden" value="{{$user['pic']}}" id="pic_path">
+
+
                                       </div>
 
                                   </div>
 
                                   <div class="form-group">
                                       <div class="col-lg-offset-2 col-lg-10">
-                                          <button class="btn btn-danger" type="button" id="update_profile_button">Save</button>
+                                          <button class="btn btn-primary" type="button" id="update_profile_button">Save</button>
                                           <button class="btn btn-default" type="button">Cancel</button>
+                                          <img id="profile_spinner" src="shared_images/spinner.gif" style="display:none;">
+
                                       </div>
                                   </div>
                               </form>
@@ -135,6 +144,7 @@ input[type='file'] {
                                           <div class="col-lg-offset-2 col-lg-10">
                                               <button class="btn btn-primary" id="update_password_btn" type="button">Save</button>
                                               <button class="btn btn-default" type="button">Cancel</button>
+                                              <img id="password_spinner" src="shared_images/spinner.gif" style="display:none;">
                                           </div>
                                       </div>
                                   </form>
@@ -164,9 +174,13 @@ input[type='file'] {
 $('#profile_pic').fileupload({
   dataType: 'json',
   done: function (e, data) {
+    $('#image_spinner').hide();    
     $('#pic_path').val(data.result.file_name);
     $('#temp_pic').attr('src',data.result.url);
-  }
+  },
+    send: function (e, data) {
+      $('#image_spinner').show();
+    }          
 });
 </script>
 

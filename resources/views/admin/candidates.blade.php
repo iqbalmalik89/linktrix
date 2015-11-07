@@ -64,6 +64,7 @@ th
                     </div>
 
             <div class="modal-footer">
+                <img style="display:none;" id="add_creator_spinner" src="shared_images/spinner.gif">
                 <button type="button" onclick="changeCreator();" class="btn btn-primary">Save </button>
             </div>
 
@@ -125,9 +126,8 @@ th
             </div>      
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-
                 <button type="button" onclick="addCandidateOwner();" class="btn btn-primary">Save </button>
-
+                <img style="display:none;" id="add_owner_spinner" src="shared_images/spinner.gif">
             </div>
         </div>
     </div>
@@ -199,18 +199,20 @@ th
                     <label>
                       <input type="radio" onclick="searchCandidates();" name="search_mode" id="and_search" value="OR">
                       OR </label>
+
+                    <a href="javascript:void(0);" onclick="resetSearch()" id="reset" style="display:none; margin-left:10px;">Reset Search</a>
+
               </span>
                </h1> 
 
 
 
 
-              <i onclick="resetSearch()" id="reset" class="fa fa-times search_term" style="position:absolute;left:1199px; top:160px;display:none; cursor:pointer;"></i>
 
               <table>
               <tr>
                 <td>
-                  <select id="search_consultant_id" onchange="searchCandidates();"  class="selectpicker" data-live-search="true"></select>
+                  <select id="search_consultant_id" name="search_consultant_id" onchange="searchCandidates();"  class="selectpicker" data-live-search="true"></select>
                 </td>
 
 

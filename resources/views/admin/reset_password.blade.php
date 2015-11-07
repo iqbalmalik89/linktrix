@@ -37,7 +37,9 @@
             <input type="password" autofocus placeholder="New Password" id="password" class="form-control">
             <input type="password" placeholder="Confirm New Password" id="confirm_password" class="form-control">
             <input type="hidden" id="user_code" value="<?php if(isset($_GET['code'])) echo  $_GET['code']; ?> ">
-            <button type="button" id="reset_password_button" class="btn btn-lg btn-primary btn-block">Reset Password</button>
+            <button  style="width:45%; margin-left:55%;" type="button" id="reset_password_button" class="btn btn-lg btn-primary btn-block">Reset Password</button>
+            <img id="reset_spinner" src="shared_images/spinner.gif" style="position:absolute;left:47.5%;top:50%;display:none;">
+
     </div>          
 
 

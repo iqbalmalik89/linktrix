@@ -23,6 +23,7 @@ function addSupervisorConsultants()
 
   if(consultantIds.length > 0)
   {
+    $('#consultant_spinner').show();
     $.ajax({
       type: 'POST',
       dataType:"JSON",
@@ -32,6 +33,7 @@ function addSupervisorConsultants()
 
       },
       success:function(data){
+        $('#consultant_spinner').hide();
         if(data.status == 'success')
         {
           $('#user_id').val('');
@@ -170,6 +172,7 @@ function changeUserStatus(userId, status)
 {
   if(userId > 0)
   {
+    $('#user_spinner' + userId).show();
     $.ajax({
       type: 'post',
       dataType:"JSON",
@@ -179,6 +182,7 @@ function changeUserStatus(userId, status)
 
       },
       success:function(data){
+        // $('#user_spinner' + userId).hide();
         if(data.status == 'success')
         {
           var msg = '';
@@ -248,7 +252,7 @@ function getUsers(page, roleId)
                     ban = 'Disable';
                   }
                   $('.action_links').show();
-                  editHtml = '<td>' + manageConsultants + '<a href="javascript:void(0);" data-toggle="modal" data-target="#adduserPopup"  onclick="showAddUserPopup('+user.id+')">Edit</a> | <a href="javascript:void(0);" onclick="showDelPopup('+user.id+', \'user\')">Delete</a> | <a href="javascript:void(0);" onclick="changeUserStatus('+user.id+', '+status+')">'+ ban + ' </a></td>';
+                  editHtml = '<td style="width:300px;">' + manageConsultants + '<a href="javascript:void(0);" data-toggle="modal" data-target="#adduserPopup"  onclick="showAddUserPopup('+user.id+')">Edit</a> | <a href="javascript:void(0);" onclick="showDelPopup('+user.id+', \'user\')">Delete</a> | <a href="javascript:void(0);" onclick="changeUserStatus('+user.id+', '+status+')">'+ ban + ' </a><img id="user_spinner'+user.id+'" src="shared_images/spinner.gif" style="display:none;"></td>';
                 }
 
                 if(globalRole == 'admin')
@@ -300,6 +304,7 @@ function getAllTypeUsers()
 function deleteUser(userId)
 {
   $('#candidate_exists_popup_body').html('');
+  $('#del_spinner').show();
   if(userId > 0)
   {
     $.ajax({
@@ -311,6 +316,7 @@ function deleteUser(userId)
 
       },
       success:function(data){
+        $('#del_spinner').hide();
         if(data.status == 'success')
         {
           showMsg('#user_msg', data.message, 'green');
@@ -379,6 +385,7 @@ function addUpdateUser()
 
   if(check)
   {
+    $('#user_add_spinner').show();
     $.ajax({
       type: 'POST',
       dataType:"JSON",
@@ -388,6 +395,8 @@ function addUpdateUser()
 
       },
       success:function(data){
+        $('#user_add_spinner').hide();
+
         if(data.status == 'success')
         {
           $('#adduserPopup').modal('hide');          

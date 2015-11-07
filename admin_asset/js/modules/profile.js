@@ -50,6 +50,7 @@ function updatePassword()
 
   if(check)
   {
+    $('#password_spinner').show();
     $.ajax({
       type: 'POST',
       url: apiUrl + 'password',
@@ -59,6 +60,7 @@ function updatePassword()
 
       },
       success:function(data){
+        $('#password_spinner').hide();
         if(data.status == 'success')
         {
           showMsg('#update_password_msg', data.message, 'green');
@@ -81,8 +83,14 @@ function updateProfile()
   var name = $.trim($('#name').val());
   var email = $.trim($('#email').val());    
   var contactNumber = $.trim($('#contact_number').val());      
-  var picPath = $.trim($('#pic_path').val());      
+  var picPath = $.trim($('#pic_path').val());
+  var hiddenRoleId = $('#hidden_role_id').val();
   var check = true;
+
+  if(hiddenRoleId == 1)
+  {
+    $('#email').removeAttr('disabled');
+  }
 
   if(name == '')
   {
@@ -90,13 +98,17 @@ function updateProfile()
     check = false;
   }
 
-  if(email == '')
+  if(hiddenRoleId == 1)
   {
-    $('#email').addClass('error-class');
-    if(check)
-      $('#email').focus();
-    check = false;
+    if(email == '')
+    {
+      $('#email').addClass('error-class');
+      if(check)
+        $('#email').focus();
+      check = false;
+    }    
   }
+
 
   if(contactNumber == '')
   {
@@ -108,6 +120,7 @@ function updateProfile()
 
   if(check)
   {
+    $('#profile_spinner').show();
     $.ajax({
       type: 'POST',
       url: apiUrl + 'profile',
@@ -117,6 +130,7 @@ function updateProfile()
 
       },
       success:function(data){
+        $('#profile_spinner').hide();        
         if(data.status == 'success')
         {
           showMsg('#update_msg', data.message, 'green');

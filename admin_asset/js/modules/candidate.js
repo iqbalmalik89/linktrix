@@ -71,20 +71,26 @@ function UndeleteRequest(candidate_id)
     });  
 }
 
+
+
 function checkDuplicateCheck(email)
 {
   var candidateId = $('#candidate_id').val();
   var consultantId = $('#consultant_id').val();
 
+  if(IsEmail(email))
+  {
+    $('#check_dup_spinner').show();
     $.ajax({
-      type: 'GET',
+      type: 'get',
       dataType:"JSON",
-      url: apiUrl + 'check_duplicate_check',
+      url: apiUrl + 'duplicate_email',
       data: {email:email, candidate_id:candidateId, consultant_id:consultantId},
       beforeSend:function(){
 
       },
       success:function(data){
+        $('#check_dup_spinner').hide();
 
         if(data.status == 'success')
         {
@@ -109,7 +115,7 @@ function checkDuplicateCheck(email)
           // $('#duplicate_span').fadeIn();
           getCandidateDetail(data.data.id);
           $('#candidate_detail').modal('show');  
-
+          $('#email_submit').show();
 
         }
 
@@ -118,6 +124,11 @@ function checkDuplicateCheck(email)
 
       }
     });  
+  }
+  else
+  {
+    $('#email').addClass('error-class');
+  }
 }
 
 function getJobTitle()
@@ -308,6 +319,16 @@ function addUpdateCandidate()
       $('#email').focus();
     check = false;
   }
+  else
+  {
+    if(!IsEmail(email))
+    {
+     $('#email').addClass('error-class');
+      if(check)
+        $('#email').focus();
+      check = false;
+    }
+  }
 
   if(company1 == '')
   {
@@ -327,9 +348,10 @@ function addUpdateCandidate()
 
   if(check)
   {
+    $('#add_candidate_spinner').show();
     $.ajax({
-      type: 'POST',
-      url: apiUrl + 'candidate',
+      type: 'put',
+      url: apiUrl + 'add_update_candidate',
       data: {consultant_id: consultantId, candidate_id:candidateId, first_name: firstName, last_name:lastName, email:email, address:address, 
         postal_code:postalCode, phone:phone, date_of_birth:dateOfBirth, nric:nric, citizen:citizen, gender:gender,
          marital_status:maritalStatus, nationality:nationality, notice_period_number: noticePeriodNumber,
@@ -341,6 +363,7 @@ function addUpdateCandidate()
 
       },
       success:function(data){
+        $('#add_candidate_spinner').hide();
         scroll();
         if(data.status == 'success')
         {
@@ -475,7 +498,7 @@ function exportCandidates()
   var searchName = $.trim($('#search_name').val());
   var searchJobTitle = $.trim($('#search_job_title').val());
   var searchTags = $.trim($('#tags_field').val());
-
+  var searchConsultantId = $('#search_consultant_id').val();
 
   if(searchTerm != '')
   {
@@ -483,7 +506,7 @@ function exportCandidates()
       type: 'GET',
       dataType:"JSON",
       url: apiUrl + 'export_candidates',
-      data: {search_name: searchName, search_job_title:searchJobTitle, search_tags:searchTags},
+      data: {search_name: searchName, search_job_title:searchJobTitle, search_tags:searchTags, search_consultant_id: searchConsultantId},
       beforeSend:function(){
 
       },
@@ -627,6 +650,7 @@ function shareSecInfo(id, type)
 
 function sharePrimaryInfo(candidateId, dataType)
 {
+  $('#primary_spinner_' + dataType).show();  
   var consultantId = $('#consultant_id').val();
   $.ajax({
       type: 'POST',
@@ -637,7 +661,7 @@ function sharePrimaryInfo(candidateId, dataType)
 
       },
       success:function(data){
-
+        $('#primary_spinner_' + dataType).hide();  
         if(data.status == 'success')
         {
           getCandidateDetail(candidateId);
@@ -659,6 +683,7 @@ function saveSharing(type)
   var sharingPhoneNumber = $.trim($('#sharing_phone_number').val());
   $('#sharing_phone_number').removeClass('error-class');
 
+  $('#sec_add_spinner_' + type).show();
     $.ajax({
         type: 'POST',
         dataType:"JSON",
@@ -668,7 +693,7 @@ function saveSharing(type)
 
         },
         success:function(data){
-
+          $('#sec_add_spinner_' + type).hide();
           if(data.status == 'success')
           {
             getCandidateDetail(candidateId);
@@ -685,6 +710,32 @@ function saveSharing(type)
     });
 }
 
+function removeSecInfo(shareId)
+{
+  var candidateId = $('#candidate_id').val();
+
+  $.ajax({
+      type: 'DELETE',
+      dataType:"JSON",
+      url: apiUrl + 'sec_share',
+      data: {share_id: shareId},
+      beforeSend:function(){
+
+      },
+      success:function(data){
+
+        getCandidateDetail(candidateId);
+        if(type == 'phone')
+         showMsg('#candidate_msg', 'Phone number saved successfully', 'green');                      
+        if(type == 'cv')
+         showMsg('#candidate_msg', 'CV uploaded successfully', 'green');                                 
+
+      },
+      error:function(){
+
+      }
+  });  
+}
 
 function getCandidateDetail(candidateId, access)
 {
@@ -743,7 +794,7 @@ function getCandidateDetail(candidateId, access)
           }
           else
           {
-            sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'phone\');" href="javascript:void(0);">Share</a>';
+            sharePhone = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'phone\');" href="javascript:void(0);">Share</a><img id="primary_spinner_phone" src="shared_images/spinner.gif" style="display:none;width:20px;margin-left:5px;">';
           }
 
           sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ data.data.owner +'</td><td>' + data.data.phone + sharePhone + ' </td></tr>';
@@ -757,7 +808,7 @@ function getCandidateDetail(candidateId, access)
           }
           else
           {
-            shareCv = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'cv\');" href="javascript:void(0);">Share</a>';
+            shareCv = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="sharePrimaryInfo(\''+ candidateId +'\', \'cv\');" href="javascript:void(0);">Share</a><img id="primary_spinner_cv" src="shared_images/spinner.gif" style="display:none;width:20px;margin-left:5px;">';
           }
 
           if(data.data.cv_url == 'Restricted' || data.data.cv_url == '')
@@ -772,13 +823,24 @@ function getCandidateDetail(candidateId, access)
 
         if(!data.data.email_access)
         {
-          $('#email_submit').show();
-          $('#email_submit').attr('onclick', 'sharePrimaryInfo(\''+ candidateId +'\', \'email\');');
+          if($('#search_form').length == 0)
+          {
+            $('#email_submit').show();
+            $('#email_submit').attr('onclick', 'sharePrimaryInfo(\''+ candidateId +'\', \'email\');');            
+          }
         }
+
+
 
         $(data.data.candidate_sharing).each(function(index, candidate_share) {
           if(candidate_share != '')
           {
+
+            if(candidate_share.del_access == '1')
+              delHtml = '<a style="padding:0px 4px;" class="btn btn-primary" onclick="removeSecInfo('+candidate_share.id+')" href="javascript:void(0);">Remove</a>';
+            else
+              delHtml = '';
+
             if(candidate_share.field_type == 'phone')
             {
               if(candidate_share.owner == '0')
@@ -786,7 +848,7 @@ function getCandidateDetail(candidateId, access)
               else
                 sharePhone = '';
 
-              sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ candidate_share.user_name +'</td><td>' +candidate_share.data_field +  sharePhone + ' </td></tr>';
+              sharingPhoneHtml += '<tr><td style="color:#000;width:100px;">'+ candidate_share.user_name +'</td><td>' +candidate_share.data_field +  sharePhone + delHtml +' </td></tr>';
               sharingPhones++;
 
             }
@@ -797,7 +859,7 @@ function getCandidateDetail(candidateId, access)
               if(candidate_share.owner == '0')
                 shareCv = '<a style="padding:0px 4px;" class="btn btn-primary sharebtn" onclick="shareSecInfo(\''+ candidate_share.id +'\', \'cv\');" href="javascript:void(0);">Share</a>';
               else
-                shareCv = '<a target="_blank" href="https://docs.google.com/viewer?url='+candidate_share.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+candidate_share.cv_url+'"><i class="fa fa-save"></i> Download </a> ';
+                shareCv = '<a target="_blank" href="https://docs.google.com/viewer?url='+candidate_share.cv_url+'"><i class="fa fa-eye"></i> Preview </a> | <a target="_blank" href="'+candidate_share.cv_url+'"><i class="fa fa-save"></i> Download </a> ' + delHtml;
 
               sharingCvHtml += '<tr><td style="color:#000;width:100px;">'+ candidate_share.user_name +'</td><td>'  +  shareCv + ' </td></tr>';
               sharingCv++;
@@ -826,8 +888,8 @@ function getCandidateDetail(candidateId, access)
           // show add phone number
           if(sharingCv < 1 && data.data.is_owner === false)
           {
-            sharingCvHtml += '<tr><td colspan="2"><input type="file" id="cv" name="cv" data-url="api/cv_upload" class="file-pos"><span id="cv_name"></span>\
-                  <input type="hidden" value="" id="cv_path"><a style="display:block;width:100px;" id="sharing_cv_save" href="javascript:void(0);" class="btn btn-primary" onclick="saveSharing(\'cv\');">Save</a></td></tr>';
+            sharingCvHtml += '<tr><td colspan="2"><img id="cv_update_spinner" src="shared_images/spinner.gif" style="float:right; display:none;"><input type="file" id="cv" name="cv" data-url="api/cv_upload" class="file-pos"><span id="cv_name"></span>\
+                  <input type="hidden" value="" id="cv_path"><img id="sec_add_spinner_cv" src="shared_images/spinner.gif" style="float:left;margin-left:-44px; display:none;"><a style="display:block;width:100px;" id="sharing_cv_save" href="javascript:void(0);" class="btn btn-primary" onclick="saveSharing(\'cv\');">Save</a></td></tr>';
           }
 
           $('#lbl_unlock_btn').show();
@@ -847,10 +909,14 @@ function getCandidateDetail(candidateId, access)
         $('#cv').fileupload({
           dataType: 'json',
           done: function (e, data) {
+            $('#cv_update_spinner').hide();
             $('#cv_path').val(data.result.file_name);
             $('#cv').hide();
             $('#cv_name').show().html('<a target="_blank" href="api/cv_download?cv_path='+data.result.file_name+'">'+data.result.real_file_name+'</a>');
 //            $('#removeCv').show();
+          },
+          send: function (e, data) {
+            $('#cv_update_spinner').show();
           }
         });        
 
@@ -942,9 +1008,15 @@ function deleteCandidate(candidateId)
   });  
 }
 
+var request;
+
 function getCandidates(page)
 {
   var searchMode = $('input[name="search_mode"]:checked').val();
+
+  console.log(request);
+ if(typeof(request) != 'undefined')
+    request.abort();
 
   $('#search_count').html('');
 
@@ -961,7 +1033,7 @@ function getCandidates(page)
   var sortOrder = $.trim($('#sort_order').val());
 
   var limit = 10;
-    $.ajax({
+   request =  $.ajax({
       type: 'get',
       url: apiUrl + 'candidates',
       data: {search_mode:searchMode,  limit: limit, page:page, search_name:searchName, search_job_title :searchJobTitle, search_tags: searchTags, sort_order:sortOrder, order_by:orderBy, search_consultant_id:searchConsultantId},
@@ -1241,6 +1313,7 @@ function changeCreator()
 {
   var candidateId = $('#candidate_id').val();
   var consultantId = $('#consultant_id').val();    
+  $('#add_creator_spinner').show();
     $.ajax({
       type: 'post',
       url: apiUrl + 'change_creator',
@@ -1250,6 +1323,7 @@ function changeCreator()
 
       },
       success:function(data){
+        $('#add_creator_spinner').hide();
         if(data.status == 'success')
         {
           $('#assignCandidatePopup').modal('hide');
@@ -1353,7 +1427,7 @@ function addCandidateOwner()
     assistant[i] = $(selected).val(); 
   });
 
-
+  $('#add_owner_spinner').show();
     $.ajax({
       type: 'POST',
       dataType:"JSON",
@@ -1363,6 +1437,7 @@ function addCandidateOwner()
 
       },
       success:function(data){
+        $('#add_owner_spinner').hide();        
         if(data.status == 'success')
         {
           $('#assignCandidatePopup').modal('hide');

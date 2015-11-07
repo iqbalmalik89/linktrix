@@ -2,6 +2,8 @@
 
 use Laravel\Lumen\Routing\Controller as BaseController;
 use App\Repo\CandidateRepo as CandidateRepo;
+use App\Repo\UserRepo as UserRepo;
+use App\Repo\RoleRepo as RoleRepo;
 
 class AdminController extends BaseController
 {
@@ -14,6 +16,26 @@ class AdminController extends BaseController
 
 	public function showLogin()
 	{
+		if(\Session::has('user'))
+		{
+			return redirect('dashboard');
+		}
+		else
+		{
+			if(isset($_COOKIE['linktrix']))
+		    {
+			    parse_str($_COOKIE['linktrix']);
+
+			    // Make a verification
+		 		$userRepo = new UserRepo(new RoleRepo);
+		 		$resp = $userRepo->loginUser($usr, $hash, false);
+		 		if($resp === true)
+		 		{
+					return redirect('dashboard');
+		 		}
+		    }			
+		}
+
 		return view('admin.login', ['page_title' => 'Login']);
 	}
 
@@ -84,6 +106,12 @@ class AdminController extends BaseController
 	public function logout()
 	{
 		\Session::flush();
+		if(isset($_COOKIE['linktrix']))
+		{
+			setcookie('linktrix', null, -1, '/');
+		}
+
+
 	 ?> <script>window.location = 'login'</script>
 	 <?php
 	}

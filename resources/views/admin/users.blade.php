@@ -111,7 +111,7 @@ input[type='file'] {
                 </div>
 
                 <div id="asistant" class="tab-pane cont" style="height:100%;">
-                  <h3>Asistants</h3>
+                  <h3>Assistants</h3>
                   <table class="table table-bordered table-striped">
                     <thead>
                       <tr>
@@ -246,18 +246,20 @@ $( document ).ready(function() {
                         <label class="col-lg-3 control-label" for="recipient-name">Picture :</label>
                         <div class="col-lg-6">
                           <input type="file" id="profile_pic" name="profile_pic" data-url="api/pic_upload" class="file-pos">
-                          <img src="admin_asset/images/avatar.jpg" id="temp_pic" width="50" height="50">
+                          <table><tr><td>
+                            <img src="admin_asset/images/avatar.jpg" id="temp_pic" width="50" height="50">
+                            </td><td><img src="shared_images/spinner.gif" id="user_pic_spinner" style="display:none;"></td></tr></table>
                           <input type="hidden" value="" id="pic_path">
                         </div>
                     </div>
 
 
                 </form>
-            </div>      <div class="modal-footer">
+            </div>      
+            <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-
                 <button type="button" id="addUpdateUserButton" class="btn btn-primary"> Save </button>
-
+                <img id="user_add_spinner" style="display:none;" src="shared_images/spinner.gif">
             </div>
         </div>
     </div>
@@ -282,9 +284,8 @@ $( document ).ready(function() {
                 </form>
             </div>      <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-
                 <button type="button" id="addConsultantsButton" class="btn btn-primary"> Save </button>
-
+                <img id="consultant_spinner" style="display:none;" src="shared_images/spinner.gif">
             </div>
         </div>
     </div>
@@ -301,9 +302,13 @@ var GlobalUserId = "<?php echo $GlobalUserId;?>";
 $('#profile_pic').fileupload({
   dataType: 'json',
   done: function (e, data) {
+    $('#user_pic_spinner').hide();
     $('#pic_path').val(data.result.file_name);
     $('#temp_pic').attr('src',data.result.url);
-  }
+  },
+    send: function (e, data) {
+      $('#user_pic_spinner').show();
+    }            
 });  
 </script>
 </body>

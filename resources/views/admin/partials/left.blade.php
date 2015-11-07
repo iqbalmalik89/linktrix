@@ -88,6 +88,7 @@
       <!-- dialog buttons -->
       <div class="modal-footer">
 
+      <img src="shared_images/spinner.gif" id="del_spinner" style="display:none;">
       <button type="button" data-dismiss="modal" class="btn btn-primary" id="delete">Yes</button>
       <button type="button" data-dismiss="modal" class="btn">No</button>
  

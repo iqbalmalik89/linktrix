@@ -119,7 +119,8 @@ window.onbeforeunload = function(e) {
 
                <label class="col-sm-1 control-label">Email*</label>
                 <div class="col-sm-4">
-                  <input type="text" id="email" name="email" onblur="checkDuplicateCheck(this.value);" class="form-control">
+                  <input type="text" id="email" onkeyup="$('#email').removeClass('error-class');" name="email" onblur="checkDuplicateCheck(this.value);" class="form-control">
+                  <img src="shared_images/spinner.gif" style="width:20px;display:none; position:absolute;left:39.5%;top:9.3%;" id="check_dup_spinner">
                 </div>
 
                 <label class="col-sm-1 control-label">First Name*</label>
@@ -355,6 +356,7 @@ window.onbeforeunload = function(e) {
                   <input type="hidden" value="" id="cv_path">
                   <span id="cv_name" style="display:block; float:left; margin-top:8px;"></span>
                   <a href="javascript:void(0);" id="removeCv" style="display:none; float:right;margin-top:8px"><i class="fa fa-trash"></i>Remove</a>
+                  <img src="shared_images/spinner.gif" id="cv_upload_spinner" style="display:none; position:absolute; left:35%; top:85.4%;">
                 </div>
 
               </div>
@@ -365,7 +367,10 @@ window.onbeforeunload = function(e) {
 
               <div class="form-group">
                 <label class="col-sm-1 control-label"></label>
+
                 <div class="col-sm-2" style="float:right;">
+                    <img src="shared_images/spinner.gif" style="display:none;position:absolute; right:16%;" id="add_candidate_spinner">
+
                     <a class="btn-primary btn" id="addCandidateButton">Submit</a>
                     <a class="btn-default btn" href="candidates">Cancel</a>
                 </div>
@@ -410,10 +415,14 @@ window.onbeforeunload = function(e) {
   $('#cv').fileupload({
     dataType: 'json',
     done: function (e, data) {
+      $('#cv_upload_spinner').hide();
       $('#cv_path').val(data.result.file_name);
       $('#cv').hide();
       $('#cv_name').show().html('<a target="_blank" href="api/cv_download?cv_path='+data.result.file_name+'">'+data.result.real_file_name+'</a>');
       $('#removeCv').show();
+    },
+    send: function (e, data) {
+      $('#cv_upload_spinner').show();
     }
   });
 

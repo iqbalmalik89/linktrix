@@ -2,9 +2,12 @@ var server = window.location.hostname;
 
 var apiUrl = "";
 if (server == 'localhost' || server == '127.0.0.1') {
-    apiUrl = location.protocol + "//" + server + "/linktrix/public/api/";
-} else {
-    apiUrl = location.protocol + "//"+server+"/linktrix/public/api/";
+    apiUrl = location.protocol + "//" + server + "/linktrix/api/";
+} else if(server == 'hrdb.linktrixconsultants.com'){
+    apiUrl = location.protocol + "//"+server+"/api/";
+}
+else {
+    apiUrl = location.protocol + "//"+server+"/api/";
 }
 
 function showMsg(id, msg, type)
@@ -18,6 +21,11 @@ function scroll()
   body.animate({scrollTop:0}, '500', 'swing', function() { 
 
   });
+}
+
+function IsEmail(email) {
+  var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+  return regex.test(email);
 }
 
 function getFormatDate(date)

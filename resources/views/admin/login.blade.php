@@ -21,6 +21,15 @@
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
+<script type="text/javascript">
+$( document ).ready(function() {
+    // $( ".btn-primary" ).click(function(obj) {
+    //     $(this).css('background-color','#606060');
+    //     $(this).removeAttr('onclick');
+    // });
+});    
+</script>
+
 </head>
 <body>
 
@@ -37,13 +46,14 @@
             <input type="text" autofocus placeholder="Email" id="user_email" class="form-control">
             <input type="password" placeholder="Password" id="user_password" class="form-control">
             <label class="checkbox">
-                <input type="checkbox" value="remember-me"> Remember me
+                <input type="checkbox" id="remember_me" value="1"> Remember me
                 <span class="pull-right">
                     <a href="javascript:void(0);" onclick="showForgot()" data-toggle="modal"> Forgot Password?</a>
 
                 </span>
             </label>
-            <button type="button" id="user_login_button" class="btn btn-lg btn-primary btn-block">Sign in</button>
+            <button type="button" style="width:40%; margin-left:59%;" id="user_login_button" class="btn btn-lg btn-primary btn-block">Sign in</button>
+            <img id="login_spinner" src="shared_images/spinner.gif" style="position:absolute;left:48.5%;top:55%;display:none;">
     </div>          
 
 
@@ -56,7 +66,9 @@
 
                 </span>
             </label>
-            <button type="button" id="user_forgot_button" class="btn btn-lg btn-primary btn-block">Forgot Password</button>
+            <button type="button" style="width:45%; margin-left:59%;" id="user_forgot_button" class="btn btn-lg btn-primary btn-block">Forgot Password</button>
+            <img id="forgot_spinner" src="shared_images/spinner.gif" style="position:absolute;left:48.5%;top:48.5%;display:none;">
+
     </div> 
 
             
