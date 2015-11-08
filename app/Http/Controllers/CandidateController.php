@@ -533,6 +533,11 @@ class CandidateController extends BaseController
 	public function getCandidates()
 	{
 		$limit = \Request::input('limit');
+		$page = \Request::input('page');		
+		if($page == 1)
+			$page = 0;
+		$this->repo->page = $page;
+
 		$search = array();
 		$search['search_consultant_id'] = \Request::input('search_consultant_id');
 		$search['search_name'] = \Request::input('search_name');
@@ -557,7 +562,7 @@ class CandidateController extends BaseController
 					$singleSearch = '%'.$singleSearch.'%'; 
 			}
 			$search['search_mode'] = $searchMode;
-			$limit = 0;
+			$limit = 10;
 		}
 
 

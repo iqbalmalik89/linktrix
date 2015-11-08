@@ -534,7 +534,9 @@ function resetSearch()
   $('.search_term, #tags_field, #search_job_title').val('');
   $('#search_consultant_id').val("");
   $('#search_consultant_id').selectpicker('refresh');
-  $("#tags_ul, #job_title_ul").tagit("removeAll");  
+  $("#tags_ul, #job_title_ul").tagit("removeAll"); 
+  if($('.pagination').length > 0)
+    $('#candidates_pagination').twbsPagination('destroy');
   getCandidates(1);
 }
 
@@ -1009,12 +1011,11 @@ function deleteCandidate(candidateId)
 }
 
 var request;
-
+var globalC = 0;
 function getCandidates(page)
 {
   var searchMode = $('input[name="search_mode"]:checked').val();
 
-  console.log(request);
  if(typeof(request) != 'undefined')
     request.abort();
 
@@ -1050,7 +1051,8 @@ function getCandidates(page)
           {
               if(search != '')
               {                
-                $('#search_count').html(data.data.data.length + ' records found <button type="submit" class="btn btn-primary"><i class="fa fa-download"></i> Export Candidates</button>');
+                $('#search_count').html(data.data.pagination.total + ' records found <button type="submit" class="btn btn-primary"><i class="fa fa-download"></i> Export Candidates</button>');
+                var totalPages = Math.ceil(data.data.pagination.total / limit);
               }
               else
               {
@@ -1115,13 +1117,32 @@ function getCandidates(page)
 
               });
 
-            if(search != '')
-            {
-             $('#candidates_pagination').hide('');
-            }
-            else
-            {
-             $('#candidates_pagination').show();
+            // if(search != '')
+            // {
+            //  $('#candidates_pagination').hide('');
+            // }
+            // else
+            // {
+            //  $('#candidates_pagination').show();
+            //   $('#candidates_pagination').twbsPagination({
+            //     totalPages: totalPages,
+            //     visiblePages: 7,
+            //     onPageClick: function (event, page) {
+            //       getCandidates(page);
+            //     }
+            //   });              
+            // }
+
+            // if(search != '')
+            // {
+            //   if(globalC == 0)
+            //   {
+            //         $('#candidates_pagination').twbsPagination('destroy');
+            //   }
+            //   globalC++;
+            // }
+  
+
               $('#candidates_pagination').twbsPagination({
                 totalPages: totalPages,
                 visiblePages: 7,
@@ -1129,7 +1150,10 @@ function getCandidates(page)
                   getCandidates(page);
                 }
               });              
-            }
+
+
+
+
           
           }
 
@@ -1137,7 +1161,9 @@ function getCandidates(page)
         }
 
         if(html == '')
+        {
           html = '<tr><td colspan="7" align="center">No Candidate found</td></tr>';
+        }
 
         $('#candidates_body').html(html);
 
@@ -1179,6 +1205,8 @@ function undeleteCandidate(id)
 
 function searchCandidates()
 {
+    if($('.pagination').length > 0)  
+      $('#candidates_pagination').twbsPagination('destroy');
     fillSort('asc');  
     $('#search_spinner, #reset').show();
     getCandidates(1);

@@ -32,7 +32,7 @@ $app->get('verify-password', 'App\Http\Controllers\AdminController@showVerifyPas
 $app->get('import', 'App\Http\Controllers\AdminController@showImport');
 $app->get('backup', 'App\Http\Controllers\AdminController@showBackup');
 $app->get('access-denied', 'App\Http\Controllers\AdminController@showAccessDenied');
-
+$app->get('race', 'App\Http\Controllers\AdminController@showRace');
 
 // $app->get('/set', function() {
 // 	app('session')->set('key', 'Iqbal');
@@ -103,6 +103,13 @@ $app->group(['prefix' => '/api/'], function($app)
 	$app->post('backup', 'App\Http\Controllers\BackupController@createSQLDump');
 	$app->post('backup_status', 'App\Http\Controllers\BackupController@changeStatus');
 	$app->get('downloadbackup', 'App\Http\Controllers\BackupController@backupDownload');
+
+	//Race
+	$app->post('races', 'App\Http\Controllers\RaceController@save');
+	$app->put('races', 'App\Http\Controllers\RaceController@update');
+	$app->delete('races/{id}', 'App\Http\Controllers\RaceController@delete');
+	$app->get('races', 'App\Http\Controllers\RaceController@all');
+	$app->get('races/{id}', 'App\Http\Controllers\RaceController@get');
 
 
 });

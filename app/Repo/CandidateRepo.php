@@ -21,6 +21,7 @@ class CandidateRepo
 	public $userRepo;
 	public $consultantId;
 	public $adminEmail;
+	public $page;
 
 	function __construct() {
 		$this->userRepo	= new UserRepo(new RoleRepo);
@@ -943,6 +944,8 @@ class CandidateRepo
 				$newCandidate->phone = $params['phone'];
 				if(!empty($params['date_of_birth']))
 					$newCandidate->date_of_birth = date('Y-m-d', strtotime($params['date_of_birth']));
+				else
+					$newCandidate->date_of_birth = '';
 				$newCandidate->email = $params['email'];
 				$newCandidate->nric = $params['nric'];
 				$newCandidate->citizen = $params['citizen'];
@@ -1028,8 +1031,13 @@ class CandidateRepo
 		$newComapny->basic_salary = $basicSalary;
 		if(!empty($fromDate))
 			$newComapny->from_date = date('Y-m-d', strtotime($fromDate));
+		else
+			$newComapny->from_date = '';
+
 		if(!empty($toDate))
 			$newComapny->to_date = date('Y-m-d', strtotime($toDate));
+		else
+			$newComapny->to_date = '';
 		$newComapny->position = $position;
 		$newComapny->save();			
 	}
@@ -1055,9 +1063,7 @@ class CandidateRepo
 	{
 		$exportData = array();
 		$candidates = $this->getCandidates(0, $searchTerm, 'basic_salary', 'asc');
-		// echo "<pre>";
-		// print_r($candidates);
-		// die();
+
 		if(!empty($candidates['data']))
 		{
 			// heading
@@ -1181,9 +1187,6 @@ class CandidateRepo
 			$exporter->export('php://output', $exportData);
 		}
 
-
-
-
 		return array('file' => $fileName);
 	}
 
@@ -1274,6 +1277,7 @@ class CandidateRepo
 
 	public function getCandidates($limit, $search, $orderby, $sortOrder)
 	{
+
     	$data = array();
     	$searchBool = false;
 
@@ -1380,6 +1384,19 @@ class CandidateRepo
     			
     		}
 
+    		$countQuery = str_replace('select c.id', 'select count(c.id) as cid', $query);
+    		$countQuery = str_replace('group by c.id', '', $countQuery);
+
+    		$countQuery = \DB::select($countQuery);
+    		$totalRec = $countQuery[0]->cid;
+
+    		if(!empty($limit))
+    		{
+	    		$offset = $this->page * $limit;
+				$query = $query . ' limit '.$offset.','.$limit;    			
+    		}
+
+
 			$candidates = \DB::select($query);
 
     	}
@@ -1390,14 +1407,17 @@ class CandidateRepo
 			else
 				$candidates = Candidate::where('deleted', '=', '0')->orderBy('id', 'desc');
 		}
+
 		if(!empty($candidates))
 		{
 			if(!$searchBool)
 			{
-		    	if(!empty($limit)){
+		    	if(!empty($limit))
+		    	{
 			    	$candidates = $candidates->paginate($limit);
 		    	}
-				else {
+				else 
+				{
 					$candidates = $candidates->get();
 				}				
 			}
@@ -1420,11 +1440,18 @@ class CandidateRepo
 	            $data['data'][] = $candidateData;
 	        }
 
-	        if(!empty($limit)){
+	        if(!empty($limit) && !$searchBool)
+	        {
 		       	$data['data'] = \Utility::paginator($data, $candidates);
-	        } else {
-		       	$data['data'] = $data;
 	        }
+	        else 
+	        {
+		       	$data['data'] = $data;
+	        	$data['data']['pagination']['total'] = $totalRec;
+
+	        }
+
+
 		}
 
 		if($searchBool != '' && $orderby != '' && !empty($data['data']['data']))

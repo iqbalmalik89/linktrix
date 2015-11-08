@@ -44,6 +44,11 @@ class AdminController extends BaseController
 		return view('admin.dashboard', ['page_title' => 'Dashboard', 'user' => $this->userData]);
 	}	
 
+	public function showRace()
+	{
+		return view('admin.race', ['page_title' => 'Race', 'user' => $this->userData]);
+	}	
+
 	public function showCandidates()
 	{
 		$role = $this->candidateRepo->getUserRole();

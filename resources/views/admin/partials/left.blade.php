@@ -14,6 +14,7 @@
       <li><a <?php if($route == 'users') echo 'class="active"'; ?> href="users"><i class="fa fa-group"></i><span>Users</span></a></li>      
       <li><a <?php if($route == 'candidates') echo 'class="active"'; ?> href="candidates"><i class="fa fa-male"></i><span>Candidates</span></a></li>      
       <li><a <?php if($route == 'import') echo 'class="active"'; ?> href="import"><i class="fa fa-download"></i><span>Import</span></a></li>      
+      <li><a <?php if($route == 'race') echo 'class="active"'; ?> href="race"><i class="fa fa-download"></i><span>Race</span></a></li>      
       <?php
       $userData = \Session::get('user');
 
